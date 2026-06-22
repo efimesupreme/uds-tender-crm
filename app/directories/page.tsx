@@ -1,7 +1,11 @@
+"use client";
+
+import { useCrmStore } from "@/lib/client-store";
 import { directories, externalParticipants } from "@/lib/mock-data";
 import { lossReasons, nonParticipationReasons, statusLabels, taskTypeLabels } from "@/lib/workflow";
 
 export default function DirectoriesPage() {
+  const { resetDemoData } = useCrmStore();
   const directoryGroups = directories.reduce<Record<string, typeof directories>>((acc, item) => {
     acc[item.directoryType] = acc[item.directoryType] ?? [];
     acc[item.directoryType].push(item);
@@ -15,6 +19,7 @@ export default function DirectoriesPage() {
           <h1>Справочники</h1>
           <p>Базовые списки MVP. Редактирование будет добавлено после подключения базы.</p>
         </div>
+      <button className="button" type="button" onClick={resetDemoData}>Сбросить демо-данные</button>
       </header>
 
       <section className="sectionStack">

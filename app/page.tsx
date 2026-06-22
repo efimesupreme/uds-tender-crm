@@ -1,11 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import { RequestTable } from "@/components/RequestTable";
 import { TaskList } from "@/components/TaskList";
-import { requests, tasks } from "@/lib/mock-data";
+import { useCrmStore } from "@/lib/client-store";
 import { formatMoney } from "@/lib/utils";
 import { isActiveRequest, isRequestProblem, isTaskOverdue } from "@/lib/workflow";
 
 export default function DashboardPage() {
+  const { requests, tasks } = useCrmStore();
   const activeRequests = requests.filter((request) => isActiveRequest(request.currentStatus));
   const problemRequests = requests.filter((request) => isRequestProblem(request, tasks));
   const overdueTasks = tasks.filter((task) => isTaskOverdue(task));
