@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TaskList } from "@/components/TaskList";
 import { useCrmStore } from "@/lib/client-store";
+import { getRequestStageDurations } from "@/lib/metrics";
 import { users } from "@/lib/mock-data";
 import { formatDateTime, formatMoney, getExternalName, getStatusLabel, getUserName } from "@/lib/utils";
 import { getNextAllowedStatuses, statusLabels } from "@/lib/workflow";
@@ -28,6 +29,7 @@ export default function RequestDetailsClient({ id }: { id: string }) {
   const requestEvents = events.filter((event) => event.requestId === request.id);
   const requestHistory = statusHistory.filter((item) => item.requestId === request.id);
   const nextStatuses = getNextAllowedStatuses(request.currentStatus);
+  const stageDurations = getRequestStageDurations(request.id, statusHistory);
 
   return (
     <>
@@ -102,8 +104,39 @@ export default function RequestDetailsClient({ id }: { id: string }) {
           </div>
         </div>
 
+
         <div className="card">
-          <h2>Задачи</h2>
+          <h2>Сроки этапов</h2>
+          {stageDurations.length === 0 ? <p className="muted">Истории этапов пока нет.</p> : (
+            <div className="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Этап</th>
+                    <th>Начало</th>
+                    <th>Окончание</th>
+                    <th>Длительность</th>
+                    <th>Сейчас</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stageDurations.map((stage) => (
+                    <tr key={`${stage.status}-${stage.startedAt}`} className={stage.isCurrent ? "problemRow" : undefined}>
+                      <td>{stage.statusLabel}</td>
+                      <td>{formatDateTime(stage.startedAt)}</td>
+                      <td>{stage.endedAt ? formatDateTime(stage.endedAt) : "—"}</td>
+                      <td>{stage.durationText}</td>
+                      <td>{stage.isCurrent ? "Текущий этап" : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="card">
+          <h2>Сроки задач</h2>
           <TaskList tasks={requestTasks} actions={{ startTask, completeTask, returnTask, acceptTask, actorUserId: request.ownerUserId }} />
         </div>
 

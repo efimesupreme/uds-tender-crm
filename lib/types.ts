@@ -80,6 +80,7 @@ export type RequestTask = {
   assigneeExternalId?: string;
   plannedDueAt?: string;
   completedAt?: string;
+  createdAt?: string;
   returnedCount: number;
   resultText?: string;
   comment?: string;

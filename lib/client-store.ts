@@ -173,7 +173,7 @@ export function useCrmStore() {
 
   const createTask = useCallback((requestId: string, input: CreateTaskInput) => {
     const createdAt = nowIso();
-    const task: RequestTask = { id: makeId("t"), requestId, title: input.title, taskType: input.taskType ?? "prepare_offer", status: "new", createdBy: input.createdBy ?? DEFAULT_ACTOR_ID, assigneeUserId: input.assigneeUserId, assigneeExternalId: input.assigneeExternalId, plannedDueAt: input.plannedDueAt, returnedCount: 0, comment: input.comment };
+    const task: RequestTask = { id: makeId("t"), requestId, title: input.title, taskType: input.taskType ?? "prepare_offer", status: "new", createdBy: input.createdBy ?? DEFAULT_ACTOR_ID, assigneeUserId: input.assigneeUserId, assigneeExternalId: input.assigneeExternalId, plannedDueAt: input.plannedDueAt, createdAt, returnedCount: 0, comment: input.comment };
     updateState((current) => ({ ...current, tasks: [task, ...current.tasks], events: [addEvent({ requestId, taskId: task.id, eventType: "task_created", actorUserId: task.createdBy, comment: task.title }, createdAt), ...current.events] }));
     return task;
   }, []);

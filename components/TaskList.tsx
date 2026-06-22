@@ -1,4 +1,5 @@
 import type { RequestTask } from "@/lib/types";
+import { getTaskDelay, getTaskDuration } from "@/lib/metrics";
 import { isTaskOverdue } from "@/lib/workflow";
 import { formatDateTime, getAssigneeName } from "@/lib/utils";
 import { TaskStatusBadge } from "./StatusBadge";
@@ -24,13 +25,20 @@ export function TaskList({ tasks, actions }: { tasks: RequestTask[]; actions?: T
             <th>Задача</th>
             <th>Исполнитель</th>
             <th>Срок</th>
+            <th>Факт</th>
+            <th>Длительность</th>
+            <th>Просрочка</th>
             <th>Статус</th>
             <th>Возвраты</th>
             {actions && <th>Действия</th>}
           </tr>
         </thead>
         <tbody>
-          {tasks.map((task) => (
+          {tasks.map((task) => {
+            const duration = getTaskDuration(task);
+            const delay = getTaskDelay(task);
+
+            return (
             <tr key={task.id} className={isTaskOverdue(task) ? "problemRow" : undefined}>
               <td>
                 {task.title}
@@ -38,6 +46,9 @@ export function TaskList({ tasks, actions }: { tasks: RequestTask[]; actions?: T
               </td>
               <td>{getAssigneeName(task)}</td>
               <td>{formatDateTime(task.plannedDueAt)}</td>
+              <td>{formatDateTime(task.completedAt)}</td>
+              <td>{duration.durationText}</td>
+              <td>{delay.isDelayed ? delay.delayedByText : "—"}</td>
               <td><TaskStatusBadge status={task.status} /></td>
               <td>{task.returnedCount}</td>
               {actions && (
@@ -51,7 +62,8 @@ export function TaskList({ tasks, actions }: { tasks: RequestTask[]; actions?: T
                 </td>
               )}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
