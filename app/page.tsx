@@ -4,16 +4,19 @@ import Link from "next/link";
 import { RequestTable } from "@/components/RequestTable";
 import { TaskList } from "@/components/TaskList";
 import { useCrmStore } from "@/lib/client-store";
+import { getAverageStageDurations, getProcessBottlenecks } from "@/lib/metrics";
 import { formatMoney } from "@/lib/utils";
 import { isActiveRequest, isRequestProblem, isTaskOverdue } from "@/lib/workflow";
 
 export default function DashboardPage() {
-  const { requests, tasks } = useCrmStore();
+  const { requests, tasks, statusHistory } = useCrmStore();
   const activeRequests = requests.filter((request) => isActiveRequest(request.currentStatus));
   const problemRequests = requests.filter((request) => isRequestProblem(request, tasks));
   const overdueTasks = tasks.filter((task) => isTaskOverdue(task));
   const ownerApprovalRequests = requests.filter((request) => request.currentStatus === "owner_approval");
   const activeOfferSum = activeRequests.reduce((sum, request) => sum + (request.offerAmount ?? 0), 0);
+  const bottlenecks = getProcessBottlenecks(requests, tasks, statusHistory);
+  const averageStageDurations = getAverageStageDurations(requests, statusHistory).filter((stage) => ["participation_decision", "appeal_and_folder", "materials_preparation", "offer_preparation", "owner_approval", "feedback_waiting"].includes(stage.status));
 
   return (
     <>
@@ -41,6 +44,46 @@ export default function DashboardPage() {
         <div className="card">
           <div className="metric">{formatMoney(activeOfferSum)}</div>
           <div className="metricLabel">активная сумма КП</div>
+        </div>
+      </section>
+
+
+      <section className="gridTwo">
+        <div className="card">
+          <h2>Узкие места процесса</h2>
+          {bottlenecks.length === 0 ? <p className="muted">Критичных узких мест не найдено.</p> : (
+            <ul>
+              {bottlenecks.slice(0, 8).map((item) => (
+                <li key={item.id}>
+                  <Link href={`/requests/${item.requestId}`} className="tableLink">{item.requestNumber}</Link> — {item.title}
+                  <div className="small muted">{item.description}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="card">
+          <h2>Средние сроки этапов</h2>
+          <div className="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Этап</th>
+                  <th>Средний срок</th>
+                  <th>Замеров</th>
+                </tr>
+              </thead>
+              <tbody>
+                {averageStageDurations.map((stage) => (
+                  <tr key={stage.status}>
+                    <td>{stage.statusLabel}</td>
+                    <td>{stage.count > 0 ? stage.averageText : "Недостаточно данных"}</td>
+                    <td>{stage.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 

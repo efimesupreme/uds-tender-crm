@@ -134,6 +134,7 @@ export const tasks: RequestTask[] = [
     createdBy: "u-denis",
     assigneeExternalId: "e-gip",
     plannedDueAt: "2026-06-21T17:00:00+03:00",
+    createdAt: "2026-06-20T13:30:00+03:00",
     completedAt: "2026-06-21T15:40:00+03:00",
     returnedCount: 0,
     resultText: "Затраты получены"
@@ -147,6 +148,7 @@ export const tasks: RequestTask[] = [
     createdBy: "u-denis",
     assigneeExternalId: "e-lawyers",
     plannedDueAt: "2026-06-22T12:00:00+03:00",
+    createdAt: "2026-06-20T13:35:00+03:00",
     returnedCount: 0
   },
   {
@@ -158,6 +160,7 @@ export const tasks: RequestTask[] = [
     createdBy: "u-katya",
     assigneeExternalId: "e-ml",
     plannedDueAt: "2026-06-21T18:00:00+03:00",
+    createdAt: "2026-06-20T16:10:00+03:00",
     returnedCount: 1,
     comment: "КП возвращалось на уточнение состава работ"
   },
@@ -170,6 +173,7 @@ export const tasks: RequestTask[] = [
     createdBy: "u-katya",
     assigneeUserId: "u-katya",
     plannedDueAt: "2026-06-24T17:00:00+03:00",
+    createdAt: "2026-06-21T12:00:00+03:00",
     returnedCount: 0
   },
   {
@@ -181,6 +185,7 @@ export const tasks: RequestTask[] = [
     createdBy: "u-denis",
     assigneeExternalId: "e-gd",
     plannedDueAt: "2026-06-20T16:00:00+03:00",
+    createdAt: "2026-06-18T10:00:00+03:00",
     returnedCount: 0,
     comment: "Срок подачи прошёл"
   }
@@ -190,7 +195,32 @@ export const statusHistory: StatusHistoryItem[] = [
   { id: "h-001", requestId: "r-001", toStatus: "new", changedBy: "u-denis", changedAt: "2026-06-20T10:15:00+03:00" },
   { id: "h-002", requestId: "r-001", fromStatus: "new", toStatus: "participation_decision", changedBy: "u-denis", changedAt: "2026-06-20T10:30:00+03:00" },
   { id: "h-003", requestId: "r-001", fromStatus: "participation_decision", toStatus: "participation_approved", changedBy: "u-denis", changedAt: "2026-06-20T13:10:00+03:00" },
-  { id: "h-004", requestId: "r-001", fromStatus: "participation_approved", toStatus: "materials_preparation", changedBy: "u-denis", changedAt: "2026-06-20T13:20:00+03:00" }
+  { id: "h-004", requestId: "r-001", fromStatus: "participation_approved", toStatus: "appeal_and_folder", changedBy: "u-denis", changedAt: "2026-06-20T13:20:00+03:00" },
+  { id: "h-005", requestId: "r-001", fromStatus: "appeal_and_folder", toStatus: "materials_preparation", changedBy: "u-denis", changedAt: "2026-06-20T17:45:00+03:00" },
+  { id: "h-006", requestId: "r-002", toStatus: "new", changedBy: "u-denis", changedAt: "2026-06-19T09:30:00+03:00" },
+  { id: "h-007", requestId: "r-002", fromStatus: "new", toStatus: "participation_decision", changedBy: "u-denis", changedAt: "2026-06-19T10:00:00+03:00" },
+  { id: "h-008", requestId: "r-002", fromStatus: "participation_decision", toStatus: "participation_approved", changedBy: "u-denis", changedAt: "2026-06-19T12:40:00+03:00" },
+  { id: "h-009", requestId: "r-002", fromStatus: "participation_approved", toStatus: "appeal_and_folder", changedBy: "u-denis", changedAt: "2026-06-19T13:15:00+03:00" },
+  { id: "h-010", requestId: "r-002", fromStatus: "appeal_and_folder", toStatus: "materials_preparation", changedBy: "u-denis", changedAt: "2026-06-19T16:20:00+03:00" },
+  { id: "h-011", requestId: "r-002", fromStatus: "materials_preparation", toStatus: "materials_received", changedBy: "u-katya", changedAt: "2026-06-20T11:45:00+03:00" },
+  { id: "h-012", requestId: "r-002", fromStatus: "materials_received", toStatus: "internal_approval", changedBy: "u-katya", changedAt: "2026-06-20T14:10:00+03:00" },
+  { id: "h-013", requestId: "r-002", fromStatus: "internal_approval", toStatus: "costs_approved", changedBy: "u-katya", changedAt: "2026-06-20T17:00:00+03:00" },
+  { id: "h-014", requestId: "r-002", fromStatus: "costs_approved", toStatus: "offer_preparation", changedBy: "u-katya", changedAt: "2026-06-21T09:30:00+03:00" },
+  { id: "h-015", requestId: "r-002", fromStatus: "offer_preparation", toStatus: "owner_approval", changedBy: "u-katya", changedAt: "2026-06-21T14:30:00+03:00" },
+  { id: "h-016", requestId: "r-003", toStatus: "new", changedBy: "u-denis", changedAt: "2026-06-18T14:20:00+03:00" },
+  { id: "h-017", requestId: "r-003", fromStatus: "new", toStatus: "participation_decision", changedBy: "u-denis", changedAt: "2026-06-18T15:00:00+03:00" },
+  { id: "h-018", requestId: "r-003", fromStatus: "participation_decision", toStatus: "not_participating", changedBy: "u-denis", changedAt: "2026-06-18T16:10:00+03:00" },
+  { id: "h-019", requestId: "r-004", toStatus: "new", changedBy: "u-denis", changedAt: "2026-06-12T11:00:00+03:00" },
+  { id: "h-020", requestId: "r-004", fromStatus: "new", toStatus: "participation_decision", changedBy: "u-denis", changedAt: "2026-06-12T11:20:00+03:00" },
+  { id: "h-021", requestId: "r-004", fromStatus: "participation_decision", toStatus: "participation_approved", changedBy: "u-denis", changedAt: "2026-06-12T12:00:00+03:00" },
+  { id: "h-022", requestId: "r-004", fromStatus: "participation_approved", toStatus: "appeal_and_folder", changedBy: "u-denis", changedAt: "2026-06-12T13:00:00+03:00" },
+  { id: "h-023", requestId: "r-004", fromStatus: "appeal_and_folder", toStatus: "materials_preparation", changedBy: "u-denis", changedAt: "2026-06-13T10:00:00+03:00" },
+  { id: "h-024", requestId: "r-004", fromStatus: "materials_preparation", toStatus: "offer_preparation", changedBy: "u-denis", changedAt: "2026-06-14T15:00:00+03:00" },
+  { id: "h-025", requestId: "r-004", fromStatus: "offer_preparation", toStatus: "owner_approval", changedBy: "u-denis", changedAt: "2026-06-15T12:00:00+03:00" },
+  { id: "h-026", requestId: "r-004", fromStatus: "owner_approval", toStatus: "ready_to_submit", changedBy: "u-denis", changedAt: "2026-06-16T09:00:00+03:00" },
+  { id: "h-027", requestId: "r-004", fromStatus: "ready_to_submit", toStatus: "submitted", changedBy: "u-denis", changedAt: "2026-06-16T16:00:00+03:00" },
+  { id: "h-028", requestId: "r-004", fromStatus: "submitted", toStatus: "feedback_waiting", changedBy: "u-denis", changedAt: "2026-06-17T09:00:00+03:00" },
+  { id: "h-029", requestId: "r-004", fromStatus: "feedback_waiting", toStatus: "won", changedBy: "u-denis", changedAt: "2026-06-18T12:00:00+03:00" }
 ];
 
 export const events: RequestEvent[] = [
