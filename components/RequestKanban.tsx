@@ -59,9 +59,8 @@ export function RequestKanban({
   }
 
   function onDragOver(event: DragEvent<HTMLElement>, column: KanbanColumn) {
-    if (!column.targetStatus) return;
     event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+    event.dataTransfer.dropEffect = column.targetStatus ? "move" : "none";
   }
 
   function onDrop(event: DragEvent<HTMLElement>, column: KanbanColumn) {
@@ -70,7 +69,14 @@ export function RequestKanban({
     const request = requests.find((item) => item.id === requestId);
     setDraggedRequestId(null);
 
-    if (!request || !column.targetStatus || request.currentStatus === column.targetStatus) return;
+    if (!request) return;
+
+    if (!column.targetStatus) {
+      setMessage("Закрытие заявки выполняется через форму результата в карточке заявки.");
+      return;
+    }
+
+    if (request.currentStatus === column.targetStatus) return;
 
     if (!canTransitionRequest(request.currentStatus, column.targetStatus)) {
       setMessage("Переход из текущего статуса в выбранную колонку не разрешён процессом");

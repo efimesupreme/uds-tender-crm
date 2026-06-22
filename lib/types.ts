@@ -37,7 +37,7 @@ export type RequestStatus =
 
 export type ParticipationDecision = "pending" | "approved" | "rejected";
 
-export type RequestResult = "none" | "won" | "lost" | "paused" | "canceled" | "no_feedback";
+export type RequestResult = "none" | "won" | "lost" | "not_participating" | "withdrawn_after_start" | "missed_deadline" | "paused" | "canceled" | "no_feedback";
 
 export type Request = {
   id: string;
@@ -65,6 +65,14 @@ export type Request = {
   plannedMarginPercent?: number;
   resultStatus: RequestResult;
   resultComment?: string;
+  closedAt?: string;
+  closedBy?: string;
+  closureReason?: string;
+  closureComment?: string;
+  resultReceivedAt?: string;
+  lossReason?: string;
+  winnerPrice?: number;
+  ourPrice?: number;
   createdAt: string;
 };
 
