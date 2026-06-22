@@ -270,3 +270,18 @@
 - `priority` — высокий, средний или низкий приоритет.
 
 После применения предложения сохраняется только результат: новая задача и события журнала. Само предложение исчезает при следующем пересчёте, если активная задача нужного типа уже существует.
+
+## Поля для проверок переходов
+
+Проверки переходов используют существующие поля заявки и задачи:
+
+- базовые данные: `title`, `customerName`, `workType`, `sourceType`, `ownerUserId`, `submissionDeadlineAt`;
+- решение об участии: `participationDecision`, `participationDecisionReceivedAt`, `participationDecisionComment`;
+- обращение и папка: `appealNumber`, `workingFolderUrl`;
+- задачи запуска работ: задачи типов `prepare_costs`, `contract_review`, `collect_documents`;
+- затраты: `costsStatus`, `costAmount`, `costsRiskComment`, `plannedMarginPercent`;
+- КП: `offerStatus`, `offerAmount`, `offerPreparedAt`, `offerComment`, `offerMlApprovedAt`;
+- документы и подача: `documentsStatus`, `submissionMethod`, `submissionSubmittedBy`, `submissionSubmittedAt`;
+- обратная связь: `nextActionText`, `nextActionDueAt`.
+
+Незаполненные обязательные поля возвращаются как ошибки и не дают изменить статус. Желательные поля возвращаются как предупреждения.

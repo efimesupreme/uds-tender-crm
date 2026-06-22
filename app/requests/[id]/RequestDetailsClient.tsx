@@ -9,6 +9,7 @@ import { useCrmStore } from "@/lib/client-store";
 import { buildFolderName, getFolderTemplate, getRequestFolderLinks } from "@/lib/folder-structure";
 import { getRequestStageDurations } from "@/lib/metrics";
 import { getAutomationSuggestions } from "@/lib/process-automation";
+import { validateRequestTransition } from "@/lib/transition-guards";
 import { users } from "@/lib/mock-data";
 import { formatDateTime, formatMoney, getExternalName, getStatusLabel, getUserName } from "@/lib/utils";
 import { closureReasonOptionsByStatus, contractAnalysisStatusOptions, costsStatusOptions, documentsStatusOptions, feedbackStatusOptions, finalRequestStatuses, getNextAllowedStatuses, isFinalRequestStatus, offerStatusOptions, participationDecisionOptions, protocolStatusOptions, statusLabels } from "@/lib/workflow";
@@ -20,6 +21,7 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
   const [folderForm, setFolderForm] = useState({ appealNumber: request?.appealNumber ?? "", workingFolderUrl: request?.workingFolderUrl ?? "" });
   const [closureForm, setClosureForm] = useState({ status: "not_participating", closureReason: "", closureComment: "", ourPrice: "", winnerPrice: "", resultReceivedAt: "" });
   const [closureError, setClosureError] = useState<string | null>(null);
+  const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
   const [participationForm, setParticipationForm] = useState({ sentAt: "", receivedAt: "", decision: "pending", comment: "", recordedBy: "" });
   const [costsForm, setCostsForm] = useState({ responsibleId: "", taskSetAt: "", plannedDueAt: "", receivedAt: "", status: "not_started", costAmount: "", offerAmount: "", margin: "", returns: "0", risk: "", approvedAt: "" });
   const [contractForm, setContractForm] = useState({ hasDraft: false, analysisStatus: "not_started", sentAt: "", receivedAt: "", risks: "", protocolNeeded: false, protocolStatus: "not_started", preparedAt: "", lawyersAt: "", gdAt: "", comment: "" });
@@ -95,6 +97,8 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
   const folderTemplate = getFolderTemplate();
   const recommendedFolderName = buildFolderName(request);
   const automationSuggestions = getAutomationSuggestions(request, tasks, events, new Date());
+  const transitionReadiness = operationalNextStatuses.map((status) => ({ status, result: validateRequestTransition(request, requestTasks, request.currentStatus, status) }));
+  const nextReadiness = transitionReadiness[0];
 
   return (
     <>
@@ -123,6 +127,19 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
 
 
 
+        {nextReadiness && (
+          <div className="card">
+            <h2>Готовность к следующему этапу</h2>
+            <p>Следующий этап: <strong>{statusLabels[nextReadiness.status]}</strong></p>
+            {nextReadiness.result.allowed ? <p className="small">Обязательные данные заполнены.</p> : <p className="dangerText">Блокирующие ошибки: {nextReadiness.result.errors.join(", ")}</p>}
+            {nextReadiness.result.warnings.length > 0 && <p className="small muted">Рекомендуется заполнить: {nextReadiness.result.warnings.join(", ")}</p>}
+            <ul className="small">
+              {nextReadiness.result.errors.map((item) => <li key={item}>Нужно заполнить: {item}</li>)}
+              {nextReadiness.result.warnings.map((item) => <li key={item}>Желательно заполнить: {item}</li>)}
+            </ul>
+          </div>
+        )}
+
         <div className="card">
           <h2>Предлагаемые действия по заявке</h2>
           <AutomationSuggestions suggestions={automationSuggestions} requests={[request]} onApply={(suggestionId) => applyAutomationSuggestion(suggestionId, currentUserId)} showRequestLink={false} />
@@ -130,12 +147,20 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
 
         <div className="card">
           <h2>Доступные переходы статуса</h2>
+          {transitionMessage && <div className="alert" role="status">{transitionMessage}</div>}
           {operationalNextStatuses.length === 0 ? <p className="muted">Операционных переходов нет. Финальные статусы проставляются в блоке результата.</p> : (
-            <div className="filterBar">
-              {operationalNextStatuses.map((status) => (
-                <button className="button" key={status} type="button" onClick={() => transitionRequest(request.id, status, currentUserId)}>
-                  {statusLabels[status]}
-                </button>
+            <div className="sectionStack">
+              {transitionReadiness.map(({ status, result }) => (
+                <div key={status}>
+                  <button className="button" type="button" disabled={!result.allowed} onClick={() => {
+                    const next = transitionRequest(request.id, status, currentUserId);
+                    setTransitionMessage(next.allowed ? (next.warnings.length > 0 ? `Переход выполнен. Рекомендуется заполнить: ${next.warnings.join(", ")}` : "Переход выполнен") : `Нельзя перейти: ${next.errors.join(", ")}`);
+                  }}>
+                    {statusLabels[status]}
+                  </button>
+                  {!result.allowed && <div className="dangerText small">Не хватает: {result.errors.join(", ")}</div>}
+                  {result.warnings.length > 0 && <div className="small muted">Желательно: {result.warnings.join(", ")}</div>}
+                </div>
               ))}
             </div>
           )}
