@@ -244,3 +244,28 @@ export function isRequestProblem(request: Request, tasks: RequestTask[], now: Da
 
   return hasNoNextAction || nextActionOverdue || hasOverdueTasks || hasNoTasksAfterApproval || missingAppealOrFolder;
 }
+
+export const participationDecisionOptions = [
+  { code: "pending", name: "Ожидаем" },
+  { code: "approved", name: "Участвуем" },
+  { code: "rejected", name: "Не участвуем" },
+  { code: "needs_clarification", name: "Требуется уточнение" }
+] as const;
+export const costsStatusOptions = [
+  { code: "not_started", name: "Не начато" }, { code: "in_progress", name: "В работе" }, { code: "received", name: "Получено" }, { code: "checking", name: "На проверке" }, { code: "returned", name: "Возвращено" }, { code: "approved", name: "Утверждено" }
+] as const;
+export const contractAnalysisStatusOptions = [
+  { code: "not_required", name: "Не требуется" }, { code: "not_started", name: "Не начато" }, { code: "with_lawyers", name: "У юристов" }, { code: "received", name: "Получено" }, { code: "risks_found", name: "Есть риски" }, { code: "approved", name: "Согласовано" }
+] as const;
+export const protocolStatusOptions = [
+  { code: "not_required", name: "Не требуется" }, { code: "not_started", name: "Не начат" }, { code: "preparing", name: "Готовится" }, { code: "with_lawyers", name: "У юристов" }, { code: "with_gd", name: "У ГД" }, { code: "approved", name: "Согласован" }, { code: "sent", name: "Отправлен" }
+] as const;
+export const documentsStatusOptions = [
+  { code: "not_started", name: "Не начато" }, { code: "in_progress", name: "В работе" }, { code: "missing_documents", name: "Не хватает документов" }, { code: "ready", name: "Готово" }
+] as const;
+export const offerStatusOptions = [
+  { code: "not_started", name: "Не начато" }, { code: "in_progress", name: "В работе" }, { code: "ready", name: "Готово" }, { code: "with_ml", name: "На согласовании у МЛ" }, { code: "returned", name: "Возвращено" }, { code: "approved", name: "Согласовано" }
+] as const;
+export const feedbackStatusOptions = [
+  { code: "waiting", name: "Ожидаем" }, { code: "received", name: "Получена" }, { code: "no_response", name: "Нет ответа" }, { code: "needs_clarification", name: "Требуется уточнение" }, { code: "final_result_received", name: "Финальный результат получен" }
+] as const;

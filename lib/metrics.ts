@@ -48,7 +48,13 @@ export type ProcessBottleneckType =
   | "long_current_stage"
   | "close_submission_deadline"
   | "owner_approval_stuck"
-  | "missing_appeal_or_folder";
+  | "missing_appeal_or_folder"
+  | "approved_without_costs"
+  | "contract_not_sent"
+  | "costs_not_approved"
+  | "offer_ml_stuck"
+  | "offer_approved_not_submitted"
+  | "submitted_without_feedback_touch";
 
 export type ProcessBottleneck = {
   id: string;
@@ -177,6 +183,14 @@ export function getProcessBottlenecks(requests: Request[], tasks: RequestTask[],
     }
     if (request.currentStatus === "owner_approval" && currentStage.durationMs >= OWNER_APPROVAL_THRESHOLD_MS) result.push({ id: `${request.id}-owner-approval`, type: "owner_approval_stuck", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "КП зависло на согласовании у МЛ", description: `Этап длится ${currentStage.durationText}.`, durationMs: currentStage.durationMs, durationText: currentStage.durationText });
     if (isMissingAppealOrFolderProblem(request)) result.push({ id: `${request.id}-missing-appeal-folder`, type: "missing_appeal_or_folder", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "Не заведено обращение или не указана рабочая папка", description: "Участие согласовано или процесс пошёл дальше, но не заполнены номер обращения или рабочая папка." });
+
+
+    if (request.currentStatus === "participation_approved" && (!request.costsStatus || request.costsStatus === "not_started")) result.push({ id: `${request.id}-approved-without-costs`, type: "approved_without_costs", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "Участие согласовано, затраты не начаты", description: "После согласования участия блок затрат ещё не запущен." });
+    if (request.currentStatus === "participation_approved" && request.contractHasDraft && !request.contractSentToLawyersAt) result.push({ id: `${request.id}-contract-not-sent`, type: "contract_not_sent", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "Договор не передан юристам", description: "Есть проект договора, но дата передачи юристам не заполнена." });
+    if (request.costsStatus === "received" && !request.costsApprovedAt) result.push({ id: `${request.id}-costs-not-approved`, type: "costs_not_approved", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "Затраты получены, но не утверждены", description: "Нужно проверить и утвердить полученные затраты." });
+    if (request.offerStatus === "with_ml" && request.offerSentToMlAt) { const delta = now.getTime() - (toTime(request.offerSentToMlAt) ?? now.getTime()); if (delta >= OWNER_APPROVAL_THRESHOLD_MS) result.push({ id: `${request.id}-offer-ml-stuck`, type: "offer_ml_stuck", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "КП слишком долго у МЛ", description: `КП на согласовании ${formatDuration(delta)}.`, durationMs: delta, durationText: formatDuration(delta), dueAt: request.offerSentToMlAt }); }
+    if (request.offerStatus === "approved" && !request.submissionSubmittedAt) result.push({ id: `${request.id}-offer-approved-not-submitted`, type: "offer_approved_not_submitted", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "КП согласовано, но не подано", description: "Заполните подачу КП или переведите заявку дальше по процессу." });
+    if ((request.currentStatus === "submitted" || request.currentStatus === "feedback_waiting") && !request.nextActionDueAt) result.push({ id: `${request.id}-submitted-no-feedback-touch`, type: "submitted_without_feedback_touch", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "Нет следующего касания после подачи", description: "Заявка подана, но дата следующего контакта по обратной связи не задана." });
 
     requestTasks.forEach((task) => {
       const delay = getTaskDelay(task, now);

@@ -35,7 +35,13 @@ export type RequestStatus =
   | "missed_deadline"
   | "canceled_or_paused";
 
-export type ParticipationDecision = "pending" | "approved" | "rejected";
+export type ParticipationDecision = "pending" | "approved" | "rejected" | "needs_clarification";
+export type CostsStatus = "not_started" | "in_progress" | "received" | "checking" | "returned" | "approved";
+export type ContractAnalysisStatus = "not_required" | "not_started" | "with_lawyers" | "received" | "risks_found" | "approved";
+export type ProtocolStatus = "not_required" | "not_started" | "preparing" | "with_lawyers" | "with_gd" | "approved" | "sent";
+export type DocumentsStatus = "not_started" | "in_progress" | "missing_documents" | "ready";
+export type OfferStatus = "not_started" | "in_progress" | "ready" | "with_ml" | "returned" | "approved";
+export type FeedbackStatus = "waiting" | "received" | "no_response" | "needs_clarification" | "final_result_received";
 
 export type RequestResult = "none" | "won" | "lost" | "not_participating" | "withdrawn_after_start" | "missed_deadline" | "paused" | "canceled" | "no_feedback";
 
@@ -63,6 +69,48 @@ export type Request = {
   costAmount?: number;
   offerAmount?: number;
   plannedMarginPercent?: number;
+
+  participationSentToGdAt?: string;
+  participationDecisionReceivedAt?: string;
+  participationDecisionComment?: string;
+  participationDecisionRecordedBy?: string;
+  costsResponsibleId?: string;
+  costsTaskSetAt?: string;
+  costsPlannedDueAt?: string;
+  costsReceivedAt?: string;
+  costsStatus?: CostsStatus;
+  costsReturnCount?: number;
+  costsRiskComment?: string;
+  costsApprovedAt?: string;
+  contractHasDraft?: boolean;
+  contractAnalysisStatus?: ContractAnalysisStatus;
+  contractSentToLawyersAt?: string;
+  contractAnalysisReceivedAt?: string;
+  contractKeyRisks?: string;
+  protocolNeeded?: boolean;
+  protocolStatus?: ProtocolStatus;
+  protocolPreparedAt?: string;
+  protocolLawyersApprovedAt?: string;
+  protocolGdApprovedAt?: string;
+  contractComment?: string;
+  documentsStatus?: DocumentsStatus;
+  documentsResponsibleId?: string;
+  documentsMissingText?: string;
+  documentsReadyAt?: string;
+  documentsComment?: string;
+  offerCostsTransferredToKatyaAt?: string;
+  offerStatus?: OfferStatus;
+  offerPreparedAt?: string;
+  offerSentToMlAt?: string;
+  offerMlApprovedAt?: string;
+  offerReturnCount?: number;
+  submissionMethod?: string;
+  submissionSubmittedBy?: string;
+  submissionSubmittedAt?: string;
+  offerComment?: string;
+  feedbackStatus?: FeedbackStatus;
+  feedbackReceivedAt?: string;
+  feedbackCustomerComment?: string;
   resultStatus: RequestResult;
   resultComment?: string;
   closedAt?: string;

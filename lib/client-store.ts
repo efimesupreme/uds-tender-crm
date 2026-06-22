@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { events, fileLinks, requests, statusHistory, tasks } from "./mock-data";
-import type { FileLink, Request, RequestEvent, RequestResult, RequestStatus, RequestTask, StatusHistoryItem, TaskStatus } from "./types";
+import type { ContractAnalysisStatus, CostsStatus, DocumentsStatus, FeedbackStatus, FileLink, OfferStatus, ParticipationDecision, ProtocolStatus, Request, RequestEvent, RequestResult, RequestStatus, RequestTask, StatusHistoryItem, TaskStatus } from "./types";
 import { canTransitionRequest, createDefaultTasksForApprovedRequest, isFinalRequestStatus, type TaskType } from "./workflow";
 
 const STORAGE_KEY = "uds-tender-crm-demo-store-v1";
@@ -42,6 +42,13 @@ export type CloseRequestInput = {
   winnerPrice?: number;
   lossReason?: string;
 };
+
+type UpdateParticipationBlockInput = Pick<Request, "participationSentToGdAt" | "participationDecisionReceivedAt" | "participationDecision" | "participationDecisionComment" | "participationDecisionRecordedBy">;
+type UpdateCostsBlockInput = Pick<Request, "costsResponsibleId" | "costsTaskSetAt" | "costsPlannedDueAt" | "costsReceivedAt" | "costsStatus" | "costAmount" | "offerAmount" | "plannedMarginPercent" | "costsReturnCount" | "costsRiskComment" | "costsApprovedAt">;
+type UpdateContractBlockInput = Pick<Request, "contractHasDraft" | "contractAnalysisStatus" | "contractSentToLawyersAt" | "contractAnalysisReceivedAt" | "contractKeyRisks" | "protocolNeeded" | "protocolStatus" | "protocolPreparedAt" | "protocolLawyersApprovedAt" | "protocolGdApprovedAt" | "contractComment">;
+type UpdateDocumentsBlockInput = Pick<Request, "documentsStatus" | "documentsResponsibleId" | "documentsMissingText" | "documentsReadyAt" | "documentsComment">;
+type UpdateOfferBlockInput = Pick<Request, "offerCostsTransferredToKatyaAt" | "offerStatus" | "offerAmount" | "offerPreparedAt" | "offerSentToMlAt" | "offerMlApprovedAt" | "offerReturnCount" | "submissionMethod" | "submissionSubmittedBy" | "submissionSubmittedAt" | "offerComment">;
+type UpdateFeedbackBlockInput = Pick<Request, "nextActionDueAt" | "feedbackStatus" | "feedbackReceivedAt" | "feedbackCustomerComment" | "nextActionText">;
 
 type CreateTaskInput = {
   title: string;
@@ -108,6 +115,14 @@ function updateState(updater: (current: CrmState) => CrmState) {
   writeState(updater(state));
 }
 
+
+function normalizeDate(value?: string) {
+  return value ? new Date(value).toISOString() : undefined;
+}
+
+function normalizeText(value?: string) {
+  return value?.trim() || undefined;
+}
 function addEvent(input: Omit<RequestEvent, "id" | "createdAt">, createdAt = nowIso()): RequestEvent {
   return { id: makeId("ev"), createdAt, ...input };
 }
@@ -303,6 +318,46 @@ export function useCrmStore() {
     });
   }, []);
 
+  const updateRequestBlock = useCallback((requestId: string, patch: Partial<Request>, eventType: string, actorUserId: string, comment: string) => {
+    const at = nowIso();
+    updateState((current) => {
+      if (!current.requests.some((item) => item.id === requestId)) return current;
+      return {
+        ...current,
+        requests: current.requests.map((item) => item.id === requestId ? { ...item, ...patch } : item),
+        events: [addEvent({ requestId, eventType, actorUserId, comment }, at), ...current.events]
+      };
+    });
+  }, []);
+
+  const updateParticipationBlock = useCallback((requestId: string, input: UpdateParticipationBlockInput, actorUserId: string) => updateRequestBlock(requestId, {
+    participationSentToGdAt: normalizeDate(input.participationSentToGdAt),
+    participationDecisionReceivedAt: normalizeDate(input.participationDecisionReceivedAt),
+    participationDecision: input.participationDecision as ParticipationDecision,
+    participationDecisionComment: normalizeText(input.participationDecisionComment),
+    participationDecisionRecordedBy: normalizeText(input.participationDecisionRecordedBy)
+  }, "participation_block_updated", actorUserId, "Обновлён блок решения об участии"), [updateRequestBlock]);
+
+  const updateCostsBlock = useCallback((requestId: string, input: UpdateCostsBlockInput, actorUserId: string) => updateRequestBlock(requestId, {
+    costsResponsibleId: normalizeText(input.costsResponsibleId), costsTaskSetAt: normalizeDate(input.costsTaskSetAt), costsPlannedDueAt: normalizeDate(input.costsPlannedDueAt), costsReceivedAt: normalizeDate(input.costsReceivedAt), costsStatus: input.costsStatus as CostsStatus, costAmount: input.costAmount, offerAmount: input.offerAmount, plannedMarginPercent: input.plannedMarginPercent, costsReturnCount: input.costsReturnCount ?? 0, costsRiskComment: normalizeText(input.costsRiskComment), costsApprovedAt: normalizeDate(input.costsApprovedAt)
+  }, "costs_block_updated", actorUserId, "Обновлён блок затрат"), [updateRequestBlock]);
+
+  const updateContractBlock = useCallback((requestId: string, input: UpdateContractBlockInput, actorUserId: string) => updateRequestBlock(requestId, {
+    contractHasDraft: Boolean(input.contractHasDraft), contractAnalysisStatus: input.contractAnalysisStatus as ContractAnalysisStatus, contractSentToLawyersAt: normalizeDate(input.contractSentToLawyersAt), contractAnalysisReceivedAt: normalizeDate(input.contractAnalysisReceivedAt), contractKeyRisks: normalizeText(input.contractKeyRisks), protocolNeeded: Boolean(input.protocolNeeded), protocolStatus: input.protocolStatus as ProtocolStatus, protocolPreparedAt: normalizeDate(input.protocolPreparedAt), protocolLawyersApprovedAt: normalizeDate(input.protocolLawyersApprovedAt), protocolGdApprovedAt: normalizeDate(input.protocolGdApprovedAt), contractComment: normalizeText(input.contractComment)
+  }, "contract_block_updated", actorUserId, "Обновлён блок договора и протокола"), [updateRequestBlock]);
+
+  const updateDocumentsBlock = useCallback((requestId: string, input: UpdateDocumentsBlockInput, actorUserId: string) => updateRequestBlock(requestId, {
+    documentsStatus: input.documentsStatus as DocumentsStatus, documentsResponsibleId: normalizeText(input.documentsResponsibleId), documentsMissingText: normalizeText(input.documentsMissingText), documentsReadyAt: normalizeDate(input.documentsReadyAt), documentsComment: normalizeText(input.documentsComment)
+  }, "documents_block_updated", actorUserId, "Обновлён блок документов для подачи"), [updateRequestBlock]);
+
+  const updateOfferBlock = useCallback((requestId: string, input: UpdateOfferBlockInput, actorUserId: string) => updateRequestBlock(requestId, {
+    offerCostsTransferredToKatyaAt: normalizeDate(input.offerCostsTransferredToKatyaAt), offerStatus: input.offerStatus as OfferStatus, offerAmount: input.offerAmount, offerPreparedAt: normalizeDate(input.offerPreparedAt), offerSentToMlAt: normalizeDate(input.offerSentToMlAt), offerMlApprovedAt: normalizeDate(input.offerMlApprovedAt), offerReturnCount: input.offerReturnCount ?? 0, submissionMethod: normalizeText(input.submissionMethod), submissionSubmittedBy: normalizeText(input.submissionSubmittedBy), submissionSubmittedAt: normalizeDate(input.submissionSubmittedAt), offerComment: normalizeText(input.offerComment)
+  }, "offer_block_updated", actorUserId, "Обновлён блок КП и подачи"), [updateRequestBlock]);
+
+  const updateFeedbackBlock = useCallback((requestId: string, input: UpdateFeedbackBlockInput, actorUserId: string) => updateRequestBlock(requestId, {
+    nextActionDueAt: normalizeDate(input.nextActionDueAt), feedbackStatus: input.feedbackStatus as FeedbackStatus, feedbackReceivedAt: normalizeDate(input.feedbackReceivedAt), feedbackCustomerComment: normalizeText(input.feedbackCustomerComment), nextActionText: normalizeText(input.nextActionText)
+  }, "feedback_block_updated", actorUserId, "Обновлён блок обратной связи"), [updateRequestBlock]);
+
   const updateNextAction = useCallback((requestId: string, text: string, dueAt: string, ownerId: string) => {
     const at = nowIso();
     updateState((current) => ({
@@ -324,6 +379,12 @@ export function useCrmStore() {
     returnTask: (taskId: string, actorUserId: string, comment?: string) => setTaskStatus(taskId, "returned", actorUserId, comment),
     acceptTask: (taskId: string, actorUserId: string) => setTaskStatus(taskId, "accepted", actorUserId),
     updateAppealAndFolder,
-    updateNextAction
-  }), [snapshot, resetDemoData, createRequest, transitionRequest, closeRequest, createTask, setTaskStatus, updateAppealAndFolder, updateNextAction]);
+    updateNextAction,
+    updateParticipationBlock,
+    updateCostsBlock,
+    updateContractBlock,
+    updateDocumentsBlock,
+    updateOfferBlock,
+    updateFeedbackBlock
+  }), [snapshot, resetDemoData, createRequest, transitionRequest, closeRequest, createTask, setTaskStatus, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock]);
 }
