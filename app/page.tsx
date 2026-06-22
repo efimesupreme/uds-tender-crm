@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { getRequestDetailsHref } from "@/lib/request-links";
 import { RequestTable } from "@/components/RequestTable";
 import { TaskList } from "@/components/TaskList";
 import { useCrmStore } from "@/lib/client-store";
@@ -9,7 +10,11 @@ import { formatMoney } from "@/lib/utils";
 import { isActiveRequest, isRequestProblem, isTaskOverdue } from "@/lib/workflow";
 
 export default function DashboardPage() {
-  const { requests, tasks, statusHistory } = useCrmStore();
+  const { requests, tasks, statusHistory, isHydrated } = useCrmStore();
+
+  if (!isHydrated) {
+    return <div className="card" role="status">Загрузка демо-данных…</div>;
+  }
   const activeRequests = requests.filter((request) => isActiveRequest(request.currentStatus));
   const problemRequests = requests.filter((request) => isRequestProblem(request, tasks));
   const overdueTasks = tasks.filter((task) => isTaskOverdue(task));
@@ -73,7 +78,7 @@ export default function DashboardPage() {
             <ul>
               {bottlenecks.slice(0, 8).map((item) => (
                 <li key={item.id}>
-                  <Link href={`/requests/${item.requestId}`} className="tableLink">{item.requestNumber}</Link> — {item.title}
+                  <Link href={getRequestDetailsHref(item.requestId)} className="tableLink">{item.requestNumber}</Link> — {item.title}
                   <div className="small muted">{item.description}</div>
                 </li>
               ))}
@@ -123,7 +128,7 @@ export default function DashboardPage() {
               <ul>
                 {ownerApprovalRequests.map((request) => (
                   <li key={request.id}>
-                    <Link href={`/requests/${request.id}`} className="tableLink">{request.title}</Link>
+                    <Link href={getRequestDetailsHref(request.id)} className="tableLink">{request.title}</Link>
                   </li>
                 ))}
               </ul>

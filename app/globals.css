@@ -403,3 +403,65 @@ tr:last-child td {
   color: var(--muted);
   font-size: 12px;
 }
+
+.button:hover,
+.button:focus-visible {
+  filter: brightness(1.08);
+  outline: 3px solid rgba(96, 150, 186, 0.35);
+  outline-offset: 2px;
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.headerActions,
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.compactHeader {
+  margin-bottom: 0;
+}
+
+.alert {
+  margin-bottom: 16px;
+  border: 1px solid #abefc6;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #ecfdf3;
+  color: var(--success);
+  font-weight: 700;
+}
+
+.alertDanger {
+  border-color: #fecdca;
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+.formField {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.formField .input,
+.formField .select {
+  width: 100%;
+}
+
+.inputError {
+  border-color: var(--danger);
+  background: #fff7f7;
+}
+
+.selectedRequestCard {
+  margin-bottom: 16px;
+}

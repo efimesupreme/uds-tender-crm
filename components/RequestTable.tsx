@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getRequestDetailsHref } from "@/lib/request-links";
 import type { Request, RequestTask } from "@/lib/types";
 import { isFinalRequestStatus, isRequestProblem, statusLabels } from "@/lib/workflow";
 import { formatDateTime, formatMoney, getUserName } from "@/lib/utils";
@@ -26,7 +27,7 @@ export function RequestTable({ requests, tasks }: { requests: Request[]; tasks: 
             <tr key={request.id} className={isRequestProblem(request, tasks) ? "problemRow" : undefined}>
               <td className="muted">{request.internalNumber}</td>
               <td>
-                <Link href={`/requests/${request.id}`} className="tableLink">
+                <Link href={getRequestDetailsHref(request.id)} className="tableLink">
                   {request.title}
                 </Link>
                 <div className="small muted">{request.region} · {request.workType}</div>

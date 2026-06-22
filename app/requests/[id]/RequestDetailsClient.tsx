@@ -11,7 +11,7 @@ import { users } from "@/lib/mock-data";
 import { formatDateTime, formatMoney, getExternalName, getStatusLabel, getUserName } from "@/lib/utils";
 import { closureReasonOptionsByStatus, contractAnalysisStatusOptions, costsStatusOptions, documentsStatusOptions, feedbackStatusOptions, finalRequestStatuses, getNextAllowedStatuses, isFinalRequestStatus, offerStatusOptions, participationDecisionOptions, protocolStatusOptions, statusLabels } from "@/lib/workflow";
 
-export default function RequestDetailsClient({ id }: { id: string }) {
+export default function RequestDetailsClient({ id, embedded = false }: { id: string; embedded?: boolean }) {
   const { requests, tasks, fileLinks, events, statusHistory, transitionRequest, closeRequest, startTask, completeTask, returnTask, acceptTask, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock } = useCrmStore();
   const request = requests.find((item) => item.id === id);
   const [nextAction, setNextAction] = useState({ text: request?.nextActionText ?? "", dueAt: request?.nextActionDueAt ? request.nextActionDueAt.slice(0, 16) : "", ownerId: request?.nextActionOwnerId ?? request?.ownerUserId ?? "u-denis" });
@@ -97,7 +97,7 @@ export default function RequestDetailsClient({ id }: { id: string }) {
     <>
       <header className="pageHeader">
         <div>
-          <Link href="/requests" className="muted">← К реестру</Link>
+          {!embedded && <Link href="/requests" className="muted">← К реестру</Link>}
           <h1>{request.title}</h1>
           <p>{request.customerName} · {request.region} · {request.workType}</p>
         </div>
