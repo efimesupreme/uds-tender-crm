@@ -1,15 +1,17 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { RequestKanban } from "@/components/RequestKanban";
 import { RequestTable } from "@/components/RequestTable";
 import { useCrmStore } from "@/lib/client-store";
 import { users } from "@/lib/mock-data";
 import { requestStatuses, statusLabels } from "@/lib/workflow";
 
 export default function RequestsPage() {
-  const { requests, tasks, createRequest } = useCrmStore();
+  const { requests, tasks, createRequest, transitionRequest } = useCrmStore();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
+  const [view, setView] = useState<"table" | "kanban">("table");
   const [form, setForm] = useState({ title: "", customerName: "", region: "", workType: "", submissionDeadlineAt: "", ownerUserId: "u-denis", sourceType: "" });
 
   const filteredRequests = useMemo(() => {
@@ -57,7 +59,16 @@ export default function RequestsPage() {
         </select>
       </div>
 
-      <RequestTable requests={filteredRequests} tasks={tasks} />
+      <div className="viewToggle" aria-label="Переключатель представления заявок">
+        <button className={`button ${view === "table" ? "" : "buttonSecondary"}`} type="button" onClick={() => setView("table")}>Таблица</button>
+        <button className={`button ${view === "kanban" ? "" : "buttonSecondary"}`} type="button" onClick={() => setView("kanban")}>Канбан</button>
+      </div>
+
+      {view === "table" ? (
+        <RequestTable requests={filteredRequests} tasks={tasks} />
+      ) : (
+        <RequestKanban requests={filteredRequests} tasks={tasks} transitionRequest={transitionRequest} />
+      )}
     </>
   );
 }
