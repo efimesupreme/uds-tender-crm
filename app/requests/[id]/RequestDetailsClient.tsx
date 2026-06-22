@@ -1,19 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TaskList } from "@/components/TaskList";
 import { useCrmStore } from "@/lib/client-store";
+import { buildFolderName, getFolderTemplate, getRequestFolderLinks } from "@/lib/folder-structure";
 import { getRequestStageDurations } from "@/lib/metrics";
 import { users } from "@/lib/mock-data";
 import { formatDateTime, formatMoney, getExternalName, getStatusLabel, getUserName } from "@/lib/utils";
 import { getNextAllowedStatuses, statusLabels } from "@/lib/workflow";
 
 export default function RequestDetailsClient({ id }: { id: string }) {
-  const { requests, tasks, fileLinks, events, statusHistory, transitionRequest, startTask, completeTask, returnTask, acceptTask, updateNextAction } = useCrmStore();
+  const { requests, tasks, fileLinks, events, statusHistory, transitionRequest, startTask, completeTask, returnTask, acceptTask, updateAppealAndFolder, updateNextAction } = useCrmStore();
   const request = requests.find((item) => item.id === id);
   const [nextAction, setNextAction] = useState({ text: request?.nextActionText ?? "", dueAt: request?.nextActionDueAt ? request.nextActionDueAt.slice(0, 16) : "", ownerId: request?.nextActionOwnerId ?? request?.ownerUserId ?? "u-denis" });
+  const [folderForm, setFolderForm] = useState({ appealNumber: request?.appealNumber ?? "", workingFolderUrl: request?.workingFolderUrl ?? "" });
+
+  useEffect(() => {
+    setFolderForm({ appealNumber: request?.appealNumber ?? "", workingFolderUrl: request?.workingFolderUrl ?? "" });
+  }, [request?.appealNumber, request?.workingFolderUrl]);
 
   if (!request) {
     return <p className="muted">Заявка не найдена в demo-store.</p>;
@@ -24,12 +30,20 @@ export default function RequestDetailsClient({ id }: { id: string }) {
     updateNextAction(id, nextAction.text, nextAction.dueAt, nextAction.ownerId);
   }
 
+  function saveAppealAndFolder(event: FormEvent) {
+    event.preventDefault();
+    updateAppealAndFolder(id, folderForm, request!.ownerUserId);
+  }
+
   const requestTasks = tasks.filter((task) => task.requestId === request.id);
   const requestFiles = fileLinks.filter((link) => link.requestId === request.id);
   const requestEvents = events.filter((event) => event.requestId === request.id);
   const requestHistory = statusHistory.filter((item) => item.requestId === request.id);
   const nextStatuses = getNextAllowedStatuses(request.currentStatus);
   const stageDurations = getRequestStageDurations(request.id, statusHistory);
+  const folderLinks = getRequestFolderLinks(request);
+  const folderTemplate = getFolderTemplate();
+  const recommendedFolderName = buildFolderName(request);
 
   return (
     <>
@@ -102,6 +116,33 @@ export default function RequestDetailsClient({ id }: { id: string }) {
               <div className="field"><span>Плановая маржа</span><strong>{request.plannedMarginPercent ? `${request.plannedMarginPercent}%` : "—"}</strong></div>
             </div>
           </div>
+        </div>
+
+        <div className="card">
+          <h2>Обращение и рабочая папка</h2>
+          <form className="detailGrid" onSubmit={saveAppealAndFolder}>
+            <input className="input" placeholder="Номер обращения" value={folderForm.appealNumber} onChange={(e) => setFolderForm({ ...folderForm, appealNumber: e.target.value })} />
+            <input className="input" placeholder="Ссылка на корневую рабочую папку" value={folderForm.workingFolderUrl} onChange={(e) => setFolderForm({ ...folderForm, workingFolderUrl: e.target.value })} />
+            <button className="button" type="submit">Сохранить</button>
+          </form>
+          <div className="detailGrid">
+            <div className="field"><span>Номер обращения</span><strong>{request.appealNumber ?? "—"}</strong></div>
+            <div className="field"><span>Рабочая папка</span><strong>{request.workingFolderUrl ? <a href={request.workingFolderUrl}>{request.workingFolderUrl}</a> : "—"}</strong></div>
+            <div className="field"><span>Дата создания папки</span><strong>{formatDateTime(request.folderCreatedAt)}</strong></div>
+            <div className="field"><span>Рекомендуемое имя папки</span><strong>{recommendedFolderName}</strong></div>
+          </div>
+          <h3>Типовая структура подпапок</h3>
+          <ul>
+            {folderTemplate.map((folderName) => <li key={folderName}>{folderName}</li>)}
+          </ul>
+          <h3>Рассчитанные рабочие ссылки</h3>
+          <ul>
+            {folderLinks.map((link) => (
+              <li key={link.key}>
+                <strong>{link.title}</strong> <span className="muted">{link.url ? <a href={link.url}>{link.url}</a> : "заполните корневую папку"}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
 

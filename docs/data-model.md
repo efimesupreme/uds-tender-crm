@@ -150,6 +150,8 @@
 - file_link_added;
 - participation_decision_recorded;
 - result_recorded;
+- appeal_and_folder_updated;
+- working_folder_ready;
 - comment_added.
 
 ## 7. file_links
@@ -168,7 +170,7 @@
 - created_at;
 - updated_at.
 
-В MVP файлы не загружаются в систему. Хранятся только ссылки.
+В MVP файлы не загружаются в систему. Хранятся только ссылки. Для рабочей папки обращения обязательной является только корневая ссылка `working_folder_url` в заявке. Отдельные ссылки на подпапки затрат, КП, договора, протокола и прочих материалов не хранятся как обязательные поля, если они выводятся из типовой структуры папки.
 
 ## 8. directories
 

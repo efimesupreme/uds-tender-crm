@@ -59,6 +59,7 @@ export type Request = {
   nextActionOwnerId?: string;
   appealNumber?: string;
   workingFolderUrl?: string;
+  folderCreatedAt?: string;
   costAmount?: number;
   offerAmount?: number;
   plannedMarginPercent?: number;

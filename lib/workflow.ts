@@ -1,3 +1,4 @@
+import { hasAppealNumber, hasWorkingFolder } from "./folder-structure";
 import type { Request, RequestStatus, RequestTask, TaskStatus } from "./types";
 
 export const requestStatuses = [
@@ -183,6 +184,14 @@ export function isTaskOverdue(task: RequestTask, now: Date = new Date()): boolea
   return Boolean(task.plannedDueAt && !["completed", "accepted", "canceled"].includes(task.status) && new Date(task.plannedDueAt).getTime() < now.getTime());
 }
 
+export function isAfterParticipationApproval(status: RequestStatus): boolean {
+  return requestStatuses.indexOf(status) >= requestStatuses.indexOf("participation_approved");
+}
+
+export function isMissingAppealOrFolderProblem(request: Request): boolean {
+  return isActiveRequest(request.currentStatus) && isAfterParticipationApproval(request.currentStatus) && (!hasAppealNumber(request) || !hasWorkingFolder(request));
+}
+
 export function isRequestProblem(request: Request, tasks: RequestTask[], now: Date = new Date()): boolean {
   if (isFinalRequestStatus(request.currentStatus)) return false;
 
@@ -191,6 +200,7 @@ export function isRequestProblem(request: Request, tasks: RequestTask[], now: Da
   const nextActionOverdue = Boolean(request.nextActionDueAt && new Date(request.nextActionDueAt).getTime() < now.getTime());
   const hasOverdueTasks = requestTasks.some((task) => isTaskOverdue(task, now));
   const hasNoTasksAfterApproval = request.currentStatus === "participation_approved" && requestTasks.length === 0;
+  const missingAppealOrFolder = isMissingAppealOrFolderProblem(request);
 
-  return hasNoNextAction || nextActionOverdue || hasOverdueTasks || hasNoTasksAfterApproval;
+  return hasNoNextAction || nextActionOverdue || hasOverdueTasks || hasNoTasksAfterApproval || missingAppealOrFolder;
 }
