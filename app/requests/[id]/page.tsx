@@ -5,6 +5,14 @@ import { TaskList } from "@/components/TaskList";
 import { events, fileLinks, requests, statusHistory, tasks } from "@/lib/mock-data";
 import { formatDateTime, formatMoney, getExternalName, getStatusLabel, getUserName } from "@/lib/utils";
 
+export function generateStaticParams() {
+  return requests.map((request) => ({
+    id: request.id
+  }));
+}
+
+export const dynamicParams = false;
+
 export default async function RequestDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const request = requests.find((item) => item.id === id);
