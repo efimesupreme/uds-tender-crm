@@ -465,3 +465,11 @@ tr:last-child td {
 .selectedRequestCard {
   margin-bottom: 16px;
 }
+
+.userSwitcher {
+  margin-top: 1rem;
+}
+
+.userSwitcher .formField {
+  color: #d8e2f3;
+}

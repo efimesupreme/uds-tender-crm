@@ -304,7 +304,10 @@ export const statusHistory: StatusHistoryItem[] = [
 export const events: RequestEvent[] = [
   { id: "ev-001", requestId: "r-001", eventType: "request_created", actorUserId: "u-denis", comment: "Заявка создана", createdAt: "2026-06-20T10:15:00+03:00" },
   { id: "ev-002", requestId: "r-001", eventType: "participation_decision_recorded", actorExternalId: "e-gd", comment: "Участие согласовано", createdAt: "2026-06-20T13:10:00+03:00" },
-  { id: "ev-003", requestId: "r-001", eventType: "task_created", actorUserId: "u-denis", comment: "Созданы задачи по затратам, договору и документам", createdAt: "2026-06-20T13:20:00+03:00" }
+  { id: "ev-003", requestId: "r-001", eventType: "task_created", actorUserId: "u-denis", comment: "Созданы задачи по затратам, договору и документам", createdAt: "2026-06-20T13:20:00+03:00" },
+  { id: "ev-004", requestId: "r-002", eventType: "offer_block_updated", actorUserId: "u-katya", comment: "Катя подготовила КП и отправила на согласование МЛ", createdAt: "2026-06-21T14:30:00+03:00" },
+  { id: "ev-005", requestId: "r-006", eventType: "request_submitted", actorUserId: "u-katya", comment: "КП подано заказчику", createdAt: "2026-06-20T16:30:00+03:00" },
+  { id: "ev-006", requestId: "r-002", eventType: "owner_approval_waiting", actorExternalId: "e-ml", comment: "Ожидаем решение МЛ", createdAt: "2026-06-21T15:00:00+03:00" }
 ];
 
 export const fileLinks: FileLink[] = [

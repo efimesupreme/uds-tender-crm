@@ -7,7 +7,8 @@ import { canTransitionRequest, createDefaultTasksForApprovedRequest, isFinalRequ
 
 export const STORAGE_KEY = "uds-tender-crm-demo-store-v1";
 const LEGACY_STORAGE_KEYS = ["uds-tender-crm-demo-store", "uds-tender-crm-store", "uds-tender-crm-demo-store-v0"];
-const DEFAULT_ACTOR_ID = "u-denis";
+export const DEFAULT_USER_ID = "u-denis";
+const DEFAULT_ACTOR_ID = DEFAULT_USER_ID;
 
 export type CrmState = {
   requests: Request[];
@@ -15,6 +16,7 @@ export type CrmState = {
   statusHistory: StatusHistoryItem[];
   events: RequestEvent[];
   fileLinks: FileLink[];
+  currentUserId: string;
   isHydrated: boolean;
 };
 
@@ -65,7 +67,7 @@ type CreateTaskInput = {
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 function initialState(): CrmState {
-  return clone({ requests, tasks, statusHistory, events, fileLinks, isHydrated: false });
+  return clone({ requests, tasks, statusHistory, events, fileLinks, currentUserId: DEFAULT_USER_ID, isHydrated: false });
 }
 
 let state: CrmState = initialState();
@@ -89,19 +91,20 @@ function makeId(prefix: string) {
 function readStoredState(): CrmState {
   if (!isBrowser()) return state;
 
+  const userId = window.localStorage.getItem(`${STORAGE_KEY}:current-user`) || DEFAULT_USER_ID;
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) {
     const seeded = initialState();
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-    return { ...seeded, isHydrated: true };
+    return { ...seeded, currentUserId: userId, isHydrated: true };
   }
 
   try {
-    return { ...initialState(), ...JSON.parse(raw), isHydrated: true } as CrmState;
+    return { ...initialState(), ...JSON.parse(raw), currentUserId: userId, isHydrated: true } as CrmState;
   } catch {
     const seeded = initialState();
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-    return { ...seeded, isHydrated: true };
+    return { ...seeded, currentUserId: userId, isHydrated: true };
   }
 }
 
@@ -109,6 +112,7 @@ function writeState(nextState: CrmState) {
   state = nextState;
   if (isBrowser()) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+    window.localStorage.setItem(`${STORAGE_KEY}:current-user`, nextState.currentUserId);
   }
   listeners.forEach((listener) => listener());
 }
@@ -153,10 +157,14 @@ export function useCrmStore() {
       window.localStorage.removeItem(STORAGE_KEY);
       LEGACY_STORAGE_KEYS.forEach((key) => window.localStorage.removeItem(key));
     }
-    writeState({ ...initialState(), isHydrated: true });
+    writeState({ ...initialState(), currentUserId: DEFAULT_USER_ID, isHydrated: true });
   }, []);
 
-  const createRequest = useCallback((input: CreateRequestInput) => {
+  const setCurrentUser = useCallback((userId: string) => {
+    writeState({ ...state, currentUserId: userId || DEFAULT_USER_ID });
+  }, []);
+
+  const createRequest = useCallback((input: CreateRequestInput, actorUserId = state.currentUserId) => {
     const createdAt = nowIso();
     const requestId = makeId("r");
     const nextNumber = `T-${new Date().getFullYear()}-${String(state.requests.length + 1).padStart(3, "0")}`;
@@ -180,8 +188,8 @@ export function useCrmStore() {
     updateState((current) => ({
       ...current,
       requests: [newRequest, ...current.requests],
-      statusHistory: [{ id: makeId("h"), requestId, toStatus: "new", changedBy: input.ownerUserId, changedAt: createdAt }, ...current.statusHistory],
-      events: [addEvent({ requestId, eventType: "request_created", actorUserId: input.ownerUserId, comment: "Заявка создана" }, createdAt), ...current.events]
+      statusHistory: [{ id: makeId("h"), requestId, toStatus: "new", changedBy: actorUserId, changedAt: createdAt }, ...current.statusHistory],
+      events: [addEvent({ requestId, eventType: "request_created", actorUserId, comment: "Заявка создана" }, createdAt), ...current.events]
     }));
     return newRequest;
   }, []);
@@ -364,17 +372,18 @@ export function useCrmStore() {
     nextActionDueAt: normalizeDate(input.nextActionDueAt), feedbackStatus: input.feedbackStatus as FeedbackStatus, feedbackReceivedAt: normalizeDate(input.feedbackReceivedAt), feedbackCustomerComment: normalizeText(input.feedbackCustomerComment), nextActionText: normalizeText(input.nextActionText)
   }, "feedback_block_updated", actorUserId, "Обновлён блок обратной связи"), [updateRequestBlock]);
 
-  const updateNextAction = useCallback((requestId: string, text: string, dueAt: string, ownerId: string) => {
+  const updateNextAction = useCallback((requestId: string, text: string, dueAt: string, ownerId: string, actorUserId = state.currentUserId) => {
     const at = nowIso();
     updateState((current) => ({
       ...current,
       requests: current.requests.map((item) => item.id === requestId ? { ...item, nextActionText: text, nextActionDueAt: dueAt ? new Date(dueAt).toISOString() : undefined, nextActionOwnerId: ownerId } : item),
-      events: [addEvent({ requestId, eventType: "next_action_updated", actorUserId: ownerId, comment: text }, at), ...current.events]
+      events: [addEvent({ requestId, eventType: "next_action_updated", actorUserId, comment: text }, at), ...current.events]
     }));
   }, []);
 
   return useMemo(() => ({
     ...snapshot,
+    setCurrentUser,
     resetDemoData,
     createRequest,
     transitionRequest,

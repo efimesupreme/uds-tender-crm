@@ -8,8 +8,6 @@ import { canTransitionRequest, isRequestProblem, statusLabels } from "@/lib/work
 import { formatDateTime, formatMoney, getUserName, isPast } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
 
-const ACTOR_USER_ID = "u-denis";
-
 type KanbanColumn = {
   id: string;
   title: string;
@@ -31,11 +29,13 @@ const kanbanColumns: KanbanColumn[] = [
 export function RequestKanban({
   requests,
   tasks,
-  transitionRequest
+  transitionRequest,
+  actorUserId
 }: {
   requests: Request[];
   tasks: RequestTask[];
   transitionRequest: (requestId: string, toStatus: RequestStatus, actorUserId: string, comment?: string) => void;
+  actorUserId: string;
 }) {
   const [draggedRequestId, setDraggedRequestId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -84,7 +84,7 @@ export function RequestKanban({
       return;
     }
 
-    transitionRequest(request.id, column.targetStatus, ACTOR_USER_ID, `Перемещено на канбане в колонку «${column.title}»`);
+    transitionRequest(request.id, column.targetStatus, actorUserId, `Перемещено на канбане в колонку «${column.title}»`);
     setMessage(null);
   }
 

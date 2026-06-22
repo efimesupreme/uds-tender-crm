@@ -8,9 +8,10 @@ import { useCrmStore } from "@/lib/client-store";
 import { getAverageStageDurations, getProcessBottlenecks } from "@/lib/metrics";
 import { formatMoney } from "@/lib/utils";
 import { isActiveRequest, isRequestProblem, isTaskOverdue } from "@/lib/workflow";
+import { DENIS_USER_ID, getDenisFocus, getKatyaFocus } from "@/lib/user-workspace";
 
 export default function DashboardPage() {
-  const { requests, tasks, statusHistory, isHydrated } = useCrmStore();
+  const { requests, tasks, statusHistory, currentUserId, isHydrated } = useCrmStore();
 
   if (!isHydrated) {
     return <div className="card" role="status">Загрузка демо-данных…</div>;
@@ -22,6 +23,9 @@ export default function DashboardPage() {
   const activeOfferSum = activeRequests.reduce((sum, request) => sum + (request.offerAmount ?? 0), 0);
   const bottlenecks = getProcessBottlenecks(requests, tasks, statusHistory);
   const averageStageDurations = getAverageStageDurations(requests, statusHistory).filter((stage) => ["participation_decision", "appeal_and_folder", "materials_preparation", "offer_preparation", "owner_approval", "feedback_waiting"].includes(stage.status));
+  const denisFocus = getDenisFocus(requests, tasks);
+  const katyaFocus = getKatyaFocus(requests);
+  const isDenis = currentUserId === DENIS_USER_ID;
   const closedStats = {
     won: requests.filter((request) => request.currentStatus === "won").length,
     lost: requests.filter((request) => request.currentStatus === "lost").length,
@@ -59,6 +63,29 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      <section className="card">
+        <h2>Рабочий фокус</h2>
+        <div className="detailGrid">
+          {isDenis ? (
+            <>
+              <div className="field"><span>Без решения об участии</span><strong>{denisFocus.participationPending.length}</strong></div>
+              <div className="field"><span>Без обращения/папки</span><strong>{denisFocus.missingAppealOrFolder.length}</strong></div>
+              <div className="field"><span>Просроченные задачи</span><strong>{denisFocus.overdueTasks.length}</strong></div>
+              <div className="field"><span>Узкие места</span><strong>{denisFocus.bottleneckRequests.length}</strong></div>
+              <div className="field"><span>Близкий срок подачи</span><strong>{denisFocus.deadlineSoon.length}</strong></div>
+              <div className="field"><span>Без следующего действия</span><strong>{denisFocus.noNextAction.length}</strong></div>
+            </>
+          ) : (
+            <>
+              <div className="field"><span>КП в работе</span><strong>{katyaFocus.offersInProgress.length}</strong></div>
+              <div className="field"><span>КП у МЛ</span><strong>{katyaFocus.offersWithMl.length}</strong></div>
+              <div className="field"><span>Документы для подачи</span><strong>{katyaFocus.documentsForSubmission.length}</strong></div>
+              <div className="field"><span>Готово к подаче</span><strong>{katyaFocus.readyToSubmit.length}</strong></div>
+              <div className="field"><span>Нужна обратная связь</span><strong>{katyaFocus.submittedFeedback.length}</strong></div>
+            </>
+          )}
+        </div>
+      </section>
 
       <section className="card">
         <h2>Статистика закрытия</h2>

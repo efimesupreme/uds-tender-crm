@@ -12,9 +12,9 @@ import { formatDateTime, formatMoney, getExternalName, getStatusLabel, getUserNa
 import { closureReasonOptionsByStatus, contractAnalysisStatusOptions, costsStatusOptions, documentsStatusOptions, feedbackStatusOptions, finalRequestStatuses, getNextAllowedStatuses, isFinalRequestStatus, offerStatusOptions, participationDecisionOptions, protocolStatusOptions, statusLabels } from "@/lib/workflow";
 
 export default function RequestDetailsClient({ id, embedded = false }: { id: string; embedded?: boolean }) {
-  const { requests, tasks, fileLinks, events, statusHistory, transitionRequest, closeRequest, startTask, completeTask, returnTask, acceptTask, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock } = useCrmStore();
+  const { requests, tasks, fileLinks, events, statusHistory, currentUserId, transitionRequest, closeRequest, startTask, completeTask, returnTask, acceptTask, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock } = useCrmStore();
   const request = requests.find((item) => item.id === id);
-  const [nextAction, setNextAction] = useState({ text: request?.nextActionText ?? "", dueAt: request?.nextActionDueAt ? request.nextActionDueAt.slice(0, 16) : "", ownerId: request?.nextActionOwnerId ?? request?.ownerUserId ?? "u-denis" });
+  const [nextAction, setNextAction] = useState({ text: request?.nextActionText ?? "", dueAt: request?.nextActionDueAt ? request.nextActionDueAt.slice(0, 16) : "", ownerId: request?.nextActionOwnerId ?? request?.ownerUserId ?? currentUserId });
   const [folderForm, setFolderForm] = useState({ appealNumber: request?.appealNumber ?? "", workingFolderUrl: request?.workingFolderUrl ?? "" });
   const [closureForm, setClosureForm] = useState({ status: "not_participating", closureReason: "", closureComment: "", ourPrice: "", winnerPrice: "", resultReceivedAt: "" });
   const [closureError, setClosureError] = useState<string | null>(null);
@@ -44,12 +44,12 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
 
   function saveNextAction(event: FormEvent) {
     event.preventDefault();
-    updateNextAction(id, nextAction.text, nextAction.dueAt, nextAction.ownerId);
+    updateNextAction(id, nextAction.text, nextAction.dueAt, nextAction.ownerId, currentUserId);
   }
 
   function saveAppealAndFolder(event: FormEvent) {
     event.preventDefault();
-    updateAppealAndFolder(id, folderForm, request!.ownerUserId);
+    updateAppealAndFolder(id, folderForm, currentUserId);
   }
 
   function submitClosure(event: FormEvent) {
@@ -64,7 +64,7 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
         ourPrice: closureForm.ourPrice ? Number(closureForm.ourPrice) : undefined,
         winnerPrice: closureForm.winnerPrice ? Number(closureForm.winnerPrice) : undefined,
         lossReason: closureStatus === "lost" ? closureForm.closureReason : undefined
-      }, request!.ownerUserId);
+      }, currentUserId);
     } catch (error) {
       setClosureError(error instanceof Error ? error.message : "Не удалось закрыть заявку");
     }
@@ -73,12 +73,12 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
 
   const numberOrUndefined = (value: string) => value ? Number(value) : undefined;
 
-  function saveParticipation(event: FormEvent) { event.preventDefault(); updateParticipationBlock(id, { participationSentToGdAt: participationForm.sentAt, participationDecisionReceivedAt: participationForm.receivedAt, participationDecision: participationForm.decision as never, participationDecisionComment: participationForm.comment, participationDecisionRecordedBy: participationForm.recordedBy }, request!.ownerUserId); }
-  function saveCosts(event: FormEvent) { event.preventDefault(); updateCostsBlock(id, { costsResponsibleId: costsForm.responsibleId, costsTaskSetAt: costsForm.taskSetAt, costsPlannedDueAt: costsForm.plannedDueAt, costsReceivedAt: costsForm.receivedAt, costsStatus: costsForm.status as never, costAmount: numberOrUndefined(costsForm.costAmount), offerAmount: numberOrUndefined(costsForm.offerAmount), plannedMarginPercent: numberOrUndefined(costsForm.margin), costsReturnCount: Number(costsForm.returns || 0), costsRiskComment: costsForm.risk, costsApprovedAt: costsForm.approvedAt }, request!.ownerUserId); }
-  function saveContract(event: FormEvent) { event.preventDefault(); updateContractBlock(id, { contractHasDraft: contractForm.hasDraft, contractAnalysisStatus: contractForm.analysisStatus as never, contractSentToLawyersAt: contractForm.sentAt, contractAnalysisReceivedAt: contractForm.receivedAt, contractKeyRisks: contractForm.risks, protocolNeeded: contractForm.protocolNeeded, protocolStatus: contractForm.protocolStatus as never, protocolPreparedAt: contractForm.preparedAt, protocolLawyersApprovedAt: contractForm.lawyersAt, protocolGdApprovedAt: contractForm.gdAt, contractComment: contractForm.comment }, request!.ownerUserId); }
-  function saveDocuments(event: FormEvent) { event.preventDefault(); updateDocumentsBlock(id, { documentsStatus: documentsForm.status as never, documentsResponsibleId: documentsForm.responsibleId, documentsMissingText: documentsForm.missing, documentsReadyAt: documentsForm.readyAt, documentsComment: documentsForm.comment }, request!.ownerUserId); }
-  function saveOffer(event: FormEvent) { event.preventDefault(); updateOfferBlock(id, { offerCostsTransferredToKatyaAt: offerForm.transferredAt, offerStatus: offerForm.status as never, offerAmount: numberOrUndefined(offerForm.amount), offerPreparedAt: offerForm.preparedAt, offerSentToMlAt: offerForm.sentMlAt, offerMlApprovedAt: offerForm.approvedMlAt, offerReturnCount: Number(offerForm.returns || 0), submissionMethod: offerForm.method, submissionSubmittedBy: offerForm.submittedBy, submissionSubmittedAt: offerForm.submittedAt, offerComment: offerForm.comment }, request!.ownerUserId); }
-  function saveFeedback(event: FormEvent) { event.preventDefault(); updateFeedbackBlock(id, { nextActionDueAt: feedbackForm.nextAt, feedbackStatus: feedbackForm.status as never, feedbackReceivedAt: feedbackForm.receivedAt, feedbackCustomerComment: feedbackForm.customerComment, nextActionText: feedbackForm.nextText }, request!.ownerUserId); }
+  function saveParticipation(event: FormEvent) { event.preventDefault(); updateParticipationBlock(id, { participationSentToGdAt: participationForm.sentAt, participationDecisionReceivedAt: participationForm.receivedAt, participationDecision: participationForm.decision as never, participationDecisionComment: participationForm.comment, participationDecisionRecordedBy: participationForm.recordedBy }, currentUserId); }
+  function saveCosts(event: FormEvent) { event.preventDefault(); updateCostsBlock(id, { costsResponsibleId: costsForm.responsibleId, costsTaskSetAt: costsForm.taskSetAt, costsPlannedDueAt: costsForm.plannedDueAt, costsReceivedAt: costsForm.receivedAt, costsStatus: costsForm.status as never, costAmount: numberOrUndefined(costsForm.costAmount), offerAmount: numberOrUndefined(costsForm.offerAmount), plannedMarginPercent: numberOrUndefined(costsForm.margin), costsReturnCount: Number(costsForm.returns || 0), costsRiskComment: costsForm.risk, costsApprovedAt: costsForm.approvedAt }, currentUserId); }
+  function saveContract(event: FormEvent) { event.preventDefault(); updateContractBlock(id, { contractHasDraft: contractForm.hasDraft, contractAnalysisStatus: contractForm.analysisStatus as never, contractSentToLawyersAt: contractForm.sentAt, contractAnalysisReceivedAt: contractForm.receivedAt, contractKeyRisks: contractForm.risks, protocolNeeded: contractForm.protocolNeeded, protocolStatus: contractForm.protocolStatus as never, protocolPreparedAt: contractForm.preparedAt, protocolLawyersApprovedAt: contractForm.lawyersAt, protocolGdApprovedAt: contractForm.gdAt, contractComment: contractForm.comment }, currentUserId); }
+  function saveDocuments(event: FormEvent) { event.preventDefault(); updateDocumentsBlock(id, { documentsStatus: documentsForm.status as never, documentsResponsibleId: documentsForm.responsibleId, documentsMissingText: documentsForm.missing, documentsReadyAt: documentsForm.readyAt, documentsComment: documentsForm.comment }, currentUserId); }
+  function saveOffer(event: FormEvent) { event.preventDefault(); updateOfferBlock(id, { offerCostsTransferredToKatyaAt: offerForm.transferredAt, offerStatus: offerForm.status as never, offerAmount: numberOrUndefined(offerForm.amount), offerPreparedAt: offerForm.preparedAt, offerSentToMlAt: offerForm.sentMlAt, offerMlApprovedAt: offerForm.approvedMlAt, offerReturnCount: Number(offerForm.returns || 0), submissionMethod: offerForm.method, submissionSubmittedBy: offerForm.submittedBy, submissionSubmittedAt: offerForm.submittedAt, offerComment: offerForm.comment }, currentUserId); }
+  function saveFeedback(event: FormEvent) { event.preventDefault(); updateFeedbackBlock(id, { nextActionDueAt: feedbackForm.nextAt, feedbackStatus: feedbackForm.status as never, feedbackReceivedAt: feedbackForm.receivedAt, feedbackCustomerComment: feedbackForm.customerComment, nextActionText: feedbackForm.nextText }, currentUserId); }
 
   const requestTasks = tasks.filter((task) => task.requestId === request.id);
   const requestFiles = fileLinks.filter((link) => link.requestId === request.id);
@@ -125,7 +125,7 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
           {operationalNextStatuses.length === 0 ? <p className="muted">Операционных переходов нет. Финальные статусы проставляются в блоке результата.</p> : (
             <div className="filterBar">
               {operationalNextStatuses.map((status) => (
-                <button className="button" key={status} type="button" onClick={() => transitionRequest(request.id, status, request.ownerUserId)}>
+                <button className="button" key={status} type="button" onClick={() => transitionRequest(request.id, status, currentUserId)}>
                   {statusLabels[status]}
                 </button>
               ))}
@@ -268,7 +268,7 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
 
         <div className="card">
           <h2>Сроки задач</h2>
-          <TaskList tasks={requestTasks} actions={{ startTask, completeTask, returnTask, acceptTask, actorUserId: request.ownerUserId }} />
+          <TaskList tasks={requestTasks} actions={{ startTask, completeTask, returnTask, acceptTask, actorUserId: currentUserId }} />
         </div>
 
         <div className="gridTwo">
@@ -317,7 +317,7 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
                     <tr key={event.id}>
                       <td>{formatDateTime(event.createdAt)}</td>
                       <td>{event.eventType}</td>
-                      <td>{event.actorUserId ? getUserName(event.actorUserId) : getExternalName(event.actorExternalId)}</td>
+                      <td>{event.actorUserId ? getUserName(event.actorUserId) : event.actorExternalId ? getExternalName(event.actorExternalId) : "Система"}</td>
                       <td>{event.comment ?? "—"}</td>
                     </tr>
                   ))}

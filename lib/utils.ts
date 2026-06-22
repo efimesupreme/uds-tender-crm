@@ -33,12 +33,12 @@ export function formatDate(value?: string): string {
 
 export function getUserName(userId?: string): string {
   if (!userId) return "—";
-  return users.find((user) => user.id === userId)?.fullName ?? "—";
+  return users.find((user) => user.id === userId)?.fullName ?? "Неизвестный участник";
 }
 
 export function getExternalName(externalId?: string): string {
   if (!externalId) return "—";
-  return externalParticipants.find((participant) => participant.id === externalId)?.name ?? "—";
+  return externalParticipants.find((participant) => participant.id === externalId)?.name ?? "Неизвестный участник";
 }
 
 export function getAssigneeName(task: RequestTask): string {
