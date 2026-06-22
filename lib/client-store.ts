@@ -26,6 +26,12 @@ type CreateRequestInput = {
   sourceType: string;
 };
 
+type UpdateAppealAndFolderInput = {
+  appealNumber?: string;
+  workingFolderUrl?: string;
+  folderCreatedAt?: string;
+};
+
 type CreateTaskInput = {
   title: string;
   taskType?: TaskType;
@@ -191,6 +197,33 @@ export function useCrmStore() {
     });
   }, []);
 
+  const updateAppealAndFolder = useCallback((requestId: string, input: UpdateAppealAndFolderInput, actorUserId: string) => {
+    updateState((current) => {
+      const request = current.requests.find((item) => item.id === requestId);
+      if (!request) return current;
+
+      const at = nowIso();
+      const appealNumber = input.appealNumber?.trim() || undefined;
+      const workingFolderUrl = input.workingFolderUrl?.trim() || undefined;
+      const folderCreatedAt = input.folderCreatedAt
+        ? new Date(input.folderCreatedAt).toISOString()
+        : workingFolderUrl && !request.folderCreatedAt
+          ? at
+          : request.folderCreatedAt;
+      const ready = Boolean(appealNumber && workingFolderUrl);
+
+      return {
+        ...current,
+        requests: current.requests.map((item) => item.id === requestId ? { ...item, appealNumber, workingFolderUrl, folderCreatedAt } : item),
+        events: [
+          ...(ready ? [addEvent({ requestId, eventType: "working_folder_ready", actorUserId, comment: "Заполнены номер обращения и рабочая папка" }, at)] : []),
+          addEvent({ requestId, eventType: "appeal_and_folder_updated", actorUserId, oldValue: `${request.appealNumber ?? "—"} | ${request.workingFolderUrl ?? "—"}`, newValue: `${appealNumber ?? "—"} | ${workingFolderUrl ?? "—"}`, comment: "Обновлены обращение и рабочая папка" }, at),
+          ...current.events
+        ]
+      };
+    });
+  }, []);
+
   const updateNextAction = useCallback((requestId: string, text: string, dueAt: string, ownerId: string) => {
     const at = nowIso();
     updateState((current) => ({
@@ -210,6 +243,7 @@ export function useCrmStore() {
     completeTask: (taskId: string, actorUserId: string, resultText?: string) => setTaskStatus(taskId, "completed", actorUserId, undefined, resultText),
     returnTask: (taskId: string, actorUserId: string, comment?: string) => setTaskStatus(taskId, "returned", actorUserId, comment),
     acceptTask: (taskId: string, actorUserId: string) => setTaskStatus(taskId, "accepted", actorUserId),
+    updateAppealAndFolder,
     updateNextAction
-  }), [snapshot, resetDemoData, createRequest, transitionRequest, createTask, setTaskStatus, updateNextAction]);
+  }), [snapshot, resetDemoData, createRequest, transitionRequest, createTask, setTaskStatus, updateAppealAndFolder, updateNextAction]);
 }

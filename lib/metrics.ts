@@ -1,5 +1,5 @@
 import type { Request, RequestStatus, RequestTask, StatusHistoryItem } from "./types";
-import { isActiveRequest, statusLabels } from "./workflow";
+import { isActiveRequest, isMissingAppealOrFolderProblem, statusLabels } from "./workflow";
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -176,7 +176,7 @@ export function getProcessBottlenecks(requests: Request[], tasks: RequestTask[],
       if (deadlineDelta >= 0 && deadlineDelta <= CLOSE_DEADLINE_THRESHOLD_MS) result.push({ id: `${request.id}-close-deadline`, type: "close_submission_deadline", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "Близкий срок подачи", description: `До срока подачи осталось ${formatDuration(deadlineDelta)}.`, durationMs: deadlineDelta, durationText: formatDuration(deadlineDelta), dueAt: request.submissionDeadlineAt });
     }
     if (request.currentStatus === "owner_approval" && currentStage.durationMs >= OWNER_APPROVAL_THRESHOLD_MS) result.push({ id: `${request.id}-owner-approval`, type: "owner_approval_stuck", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "КП зависло на согласовании у МЛ", description: `Этап длится ${currentStage.durationText}.`, durationMs: currentStage.durationMs, durationText: currentStage.durationText });
-    if (request.currentStatus === "participation_approved" && (!request.appealNumber || !request.workingFolderUrl)) result.push({ id: `${request.id}-missing-appeal-folder`, type: "missing_appeal_or_folder", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "Нет обращения или рабочей папки", description: "Участие согласовано, но не заполнены номер обращения или рабочая папка." });
+    if (isMissingAppealOrFolderProblem(request)) result.push({ id: `${request.id}-missing-appeal-folder`, type: "missing_appeal_or_folder", requestId: request.id, requestTitle: request.title, requestNumber: request.internalNumber, title: "Не заведено обращение или не указана рабочая папка", description: "Участие согласовано или процесс пошёл дальше, но не заполнены номер обращения или рабочая папка." });
 
     requestTasks.forEach((task) => {
       const delay = getTaskDelay(task, now);
