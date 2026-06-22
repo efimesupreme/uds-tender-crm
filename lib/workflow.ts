@@ -141,13 +141,53 @@ export const nonParticipationReasons = [
 ] as const;
 
 export const lossReasons = [
-  { code: "price", name: "Цена" },
-  { code: "terms", name: "Сроки" },
-  { code: "experience", name: "Опыт / квалификация" },
-  { code: "competitor", name: "Выбран конкурент" },
+  { code: "higher_price", name: "Цена выше конкурентов" },
+  { code: "experience", name: "Проиграли по опыту" },
+  { code: "deadline", name: "Проиграли по срокам" },
+  { code: "contract_terms", name: "Не подошли условия договора" },
+  { code: "incumbent", name: "Заказчик выбрал действующего подрядчика" },
+  { code: "weak_offer", name: "Недостаточно проработанное КП" },
+  { code: "unknown", name: "Причина неизвестна" },
+  { code: "other", name: "Прочее" }
+] as const;
+
+export const withdrawnAfterStartReasons = [
+  { code: "contract_risks", name: "Риски договора" },
+  { code: "inputs_not_confirmed", name: "Не подтвердились исходные данные" },
+  { code: "no_resources", name: "Не хватает ресурсов" },
+  { code: "quality_deadline_risk", name: "Не успеваем подготовить качественное КП" },
+  { code: "bad_economics", name: "Экономика стала невыгодной" },
+  { code: "management_decision", name: "Решение руководства" },
+  { code: "other", name: "Прочее" }
+] as const;
+
+export const missedDeadlineReasons = [
+  { code: "found_late", name: "Поздно обнаружили тендер" },
+  { code: "slow_participation_decision", name: "Долгое решение об участии" },
+  { code: "costs_delay", name: "Задержка затрат" },
+  { code: "lawyers_delay", name: "Задержка юристов" },
+  { code: "offer_delay", name: "Задержка КП" },
+  { code: "submission_technical_issue", name: "Техническая проблема подачи" },
+  { code: "other", name: "Прочее" }
+] as const;
+
+export const canceledOrPausedReasons = [
+  { code: "customer_canceled", name: "Заказчик отменил тендер" },
+  { code: "customer_rescheduled", name: "Заказчик перенёс срок" },
+  { code: "customer_paused", name: "Заказчик заморозил проект" },
+  { code: "scope_changed", name: "Изменился состав работ" },
   { code: "no_feedback", name: "Нет обратной связи" },
   { code: "other", name: "Прочее" }
 ] as const;
+
+export const closureReasonOptionsByStatus = {
+  not_participating: nonParticipationReasons,
+  lost: lossReasons,
+  withdrawn_after_start: withdrawnAfterStartReasons,
+  missed_deadline: missedDeadlineReasons,
+  canceled_or_paused: canceledOrPausedReasons,
+  won: []
+} as const;
 
 export function canTransitionRequest(fromStatus: RequestStatus, toStatus: RequestStatus): boolean {
   return allowedStatusTransitions[fromStatus].includes(toStatus);

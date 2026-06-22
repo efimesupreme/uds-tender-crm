@@ -17,6 +17,13 @@ export default function DashboardPage() {
   const activeOfferSum = activeRequests.reduce((sum, request) => sum + (request.offerAmount ?? 0), 0);
   const bottlenecks = getProcessBottlenecks(requests, tasks, statusHistory);
   const averageStageDurations = getAverageStageDurations(requests, statusHistory).filter((stage) => ["participation_decision", "appeal_and_folder", "materials_preparation", "offer_preparation", "owner_approval", "feedback_waiting"].includes(stage.status));
+  const closedStats = {
+    won: requests.filter((request) => request.currentStatus === "won").length,
+    lost: requests.filter((request) => request.currentStatus === "lost").length,
+    notParticipating: requests.filter((request) => request.currentStatus === "not_participating").length,
+    withdrawn: requests.filter((request) => request.currentStatus === "withdrawn_after_start").length,
+    missedDeadline: requests.filter((request) => request.currentStatus === "missed_deadline").length
+  };
 
   return (
     <>
@@ -47,6 +54,17 @@ export default function DashboardPage() {
         </div>
       </section>
 
+
+      <section className="card">
+        <h2>Статистика закрытия</h2>
+        <div className="detailGrid">
+          <div className="field"><span>Победили</span><strong>{closedStats.won}</strong></div>
+          <div className="field"><span>Проиграли</span><strong>{closedStats.lost}</strong></div>
+          <div className="field"><span>Не участвуем</span><strong>{closedStats.notParticipating}</strong></div>
+          <div className="field"><span>Отказались после запуска</span><strong>{closedStats.withdrawn}</strong></div>
+          <div className="field"><span>Не успели податься</span><strong>{closedStats.missedDeadline}</strong></div>
+        </div>
+      </section>
 
       <section className="gridTwo">
         <div className="card">

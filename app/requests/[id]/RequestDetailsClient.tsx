@@ -9,13 +9,15 @@ import { buildFolderName, getFolderTemplate, getRequestFolderLinks } from "@/lib
 import { getRequestStageDurations } from "@/lib/metrics";
 import { users } from "@/lib/mock-data";
 import { formatDateTime, formatMoney, getExternalName, getStatusLabel, getUserName } from "@/lib/utils";
-import { getNextAllowedStatuses, statusLabels } from "@/lib/workflow";
+import { closureReasonOptionsByStatus, finalRequestStatuses, getNextAllowedStatuses, isFinalRequestStatus, statusLabels } from "@/lib/workflow";
 
 export default function RequestDetailsClient({ id }: { id: string }) {
-  const { requests, tasks, fileLinks, events, statusHistory, transitionRequest, startTask, completeTask, returnTask, acceptTask, updateAppealAndFolder, updateNextAction } = useCrmStore();
+  const { requests, tasks, fileLinks, events, statusHistory, transitionRequest, closeRequest, startTask, completeTask, returnTask, acceptTask, updateAppealAndFolder, updateNextAction } = useCrmStore();
   const request = requests.find((item) => item.id === id);
   const [nextAction, setNextAction] = useState({ text: request?.nextActionText ?? "", dueAt: request?.nextActionDueAt ? request.nextActionDueAt.slice(0, 16) : "", ownerId: request?.nextActionOwnerId ?? request?.ownerUserId ?? "u-denis" });
   const [folderForm, setFolderForm] = useState({ appealNumber: request?.appealNumber ?? "", workingFolderUrl: request?.workingFolderUrl ?? "" });
+  const [closureForm, setClosureForm] = useState({ status: "not_participating", closureReason: "", closureComment: "", ourPrice: "", winnerPrice: "", resultReceivedAt: "" });
+  const [closureError, setClosureError] = useState<string | null>(null);
 
   useEffect(() => {
     setFolderForm({ appealNumber: request?.appealNumber ?? "", workingFolderUrl: request?.workingFolderUrl ?? "" });
@@ -35,11 +37,32 @@ export default function RequestDetailsClient({ id }: { id: string }) {
     updateAppealAndFolder(id, folderForm, request!.ownerUserId);
   }
 
+  function submitClosure(event: FormEvent) {
+    event.preventDefault();
+    setClosureError(null);
+    try {
+      closeRequest(request!.id, {
+        status: closureStatus,
+        closureReason: closureForm.closureReason,
+        closureComment: closureForm.closureComment,
+        resultReceivedAt: closureForm.resultReceivedAt,
+        ourPrice: closureForm.ourPrice ? Number(closureForm.ourPrice) : undefined,
+        winnerPrice: closureForm.winnerPrice ? Number(closureForm.winnerPrice) : undefined,
+        lossReason: closureStatus === "lost" ? closureForm.closureReason : undefined
+      }, request!.ownerUserId);
+    } catch (error) {
+      setClosureError(error instanceof Error ? error.message : "Не удалось закрыть заявку");
+    }
+  }
+
   const requestTasks = tasks.filter((task) => task.requestId === request.id);
   const requestFiles = fileLinks.filter((link) => link.requestId === request.id);
   const requestEvents = events.filter((event) => event.requestId === request.id);
   const requestHistory = statusHistory.filter((item) => item.requestId === request.id);
   const nextStatuses = getNextAllowedStatuses(request.currentStatus);
+  const operationalNextStatuses = nextStatuses.filter((status) => !isFinalRequestStatus(status));
+  const closureStatus = closureForm.status as (typeof finalRequestStatuses)[number];
+  const closureReasons = closureReasonOptionsByStatus[closureStatus];
   const stageDurations = getRequestStageDurations(request.id, statusHistory);
   const folderLinks = getRequestFolderLinks(request);
   const folderTemplate = getFolderTemplate();
@@ -65,7 +88,7 @@ export default function RequestDetailsClient({ id }: { id: string }) {
             <div className="field"><span>Ответственный</span><strong>{getUserName(request.ownerUserId)}</strong></div>
             <div className="field"><span>Следующее действие</span><strong>{request.nextActionText ?? "Не задано"}</strong></div>
             <div className="field"><span>Срок действия</span><strong>{formatDateTime(request.nextActionDueAt)}</strong></div>
-            <div className="field"><span>Следующие статусы</span><strong>{nextStatuses.length > 0 ? nextStatuses.map(getStatusLabel).join(", ") : "Финальный статус"}</strong></div>
+            <div className="field"><span>Следующие статусы</span><strong>{operationalNextStatuses.length > 0 ? operationalNextStatuses.map(getStatusLabel).join(", ") : nextStatuses.length > 0 ? "Финальные статусы доступны в форме закрытия" : "Финальный статус"}</strong></div>
             <div className="field"><span>Сумма КП</span><strong>{formatMoney(request.offerAmount)}</strong></div>
           </div>
         </div>
@@ -74,14 +97,43 @@ export default function RequestDetailsClient({ id }: { id: string }) {
 
         <div className="card">
           <h2>Доступные переходы статуса</h2>
-          {nextStatuses.length === 0 ? <p className="muted">Финальный статус.</p> : (
+          {operationalNextStatuses.length === 0 ? <p className="muted">Операционных переходов нет. Финальные статусы проставляются в блоке результата.</p> : (
             <div className="filterBar">
-              {nextStatuses.map((status) => (
+              {operationalNextStatuses.map((status) => (
                 <button className="button" key={status} type="button" onClick={() => transitionRequest(request.id, status, request.ownerUserId)}>
                   {statusLabels[status]}
                 </button>
               ))}
             </div>
+          )}
+        </div>
+
+        <div className="card">
+          <h2>Результат и закрытие</h2>
+          <div className="detailGrid">
+            <div className="field"><span>Текущий результат</span><strong>{statusLabels[request.currentStatus]}</strong></div>
+            <div className="field"><span>Дата закрытия</span><strong>{formatDateTime(request.closedAt)}</strong></div>
+            <div className="field"><span>Причина</span><strong>{request.lossReason ?? request.closureReason ?? request.nonParticipationReason ?? "—"}</strong></div>
+            <div className="field"><span>Комментарий</span><strong>{request.closureComment ?? request.resultComment ?? "—"}</strong></div>
+            <div className="field"><span>Наша цена</span><strong>{formatMoney(request.ourPrice ?? request.offerAmount)}</strong></div>
+            <div className="field"><span>Цена победителя</span><strong>{formatMoney(request.winnerPrice)}</strong></div>
+          </div>
+          {!isFinalRequestStatus(request.currentStatus) && (
+            <form className="detailGrid" onSubmit={submitClosure}>
+              <select className="select" value={closureForm.status} onChange={(e) => setClosureForm({ ...closureForm, status: e.target.value, closureReason: "" })}>
+                {finalRequestStatuses.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
+              </select>
+              <select className="select" value={closureForm.closureReason} onChange={(e) => setClosureForm({ ...closureForm, closureReason: e.target.value })} disabled={closureReasons.length === 0}>
+                <option value="">Причина</option>
+                {closureReasons.map((reason) => <option key={reason.code} value={reason.name}>{reason.name}</option>)}
+              </select>
+              <textarea className="input" placeholder="Комментарий" value={closureForm.closureComment} onChange={(e) => setClosureForm({ ...closureForm, closureComment: e.target.value })} />
+              <input className="input" type="number" placeholder="Наша цена" value={closureForm.ourPrice} onChange={(e) => setClosureForm({ ...closureForm, ourPrice: e.target.value })} />
+              <input className="input" type="number" placeholder="Цена победителя" value={closureForm.winnerPrice} onChange={(e) => setClosureForm({ ...closureForm, winnerPrice: e.target.value })} />
+              <input className="input" type="datetime-local" value={closureForm.resultReceivedAt} onChange={(e) => setClosureForm({ ...closureForm, resultReceivedAt: e.target.value })} />
+              {closureError && <div className="dangerText">{closureError}</div>}
+              <button className="button" type="submit">Закрыть заявку</button>
+            </form>
           )}
         </div>
 

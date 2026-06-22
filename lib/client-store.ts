@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { events, fileLinks, requests, statusHistory, tasks } from "./mock-data";
-import type { FileLink, Request, RequestEvent, RequestStatus, RequestTask, StatusHistoryItem, TaskStatus } from "./types";
-import { canTransitionRequest, createDefaultTasksForApprovedRequest, type TaskType } from "./workflow";
+import type { FileLink, Request, RequestEvent, RequestResult, RequestStatus, RequestTask, StatusHistoryItem, TaskStatus } from "./types";
+import { canTransitionRequest, createDefaultTasksForApprovedRequest, isFinalRequestStatus, type TaskType } from "./workflow";
 
 const STORAGE_KEY = "uds-tender-crm-demo-store-v1";
 const DEFAULT_ACTOR_ID = "u-denis";
@@ -30,6 +30,17 @@ type UpdateAppealAndFolderInput = {
   appealNumber?: string;
   workingFolderUrl?: string;
   folderCreatedAt?: string;
+};
+
+export type CloseRequestInput = {
+  status: RequestStatus;
+  closureReason?: string;
+  closureComment?: string;
+  resultReceivedAt?: string;
+  closedAt?: string;
+  ourPrice?: number;
+  winnerPrice?: number;
+  lossReason?: string;
 };
 
 type CreateTaskInput = {
@@ -177,6 +188,74 @@ export function useCrmStore() {
     });
   }, []);
 
+
+  const closeRequest = useCallback((requestId: string, input: CloseRequestInput, actorUserId: string) => {
+    const comment = input.closureComment?.trim();
+    const reason = input.closureReason?.trim();
+    const lossReason = input.lossReason?.trim() || reason;
+
+    if (!isFinalRequestStatus(input.status)) {
+      throw new Error("Выбранный статус не является финальным");
+    }
+    if (input.status === "won" && (!input.resultReceivedAt || !comment)) {
+      throw new Error("Для победы обязательны дата результата и комментарий");
+    }
+    if (input.status === "lost" && (!lossReason || !comment)) {
+      throw new Error("Для проигрыша обязательны причина проигрыша и комментарий");
+    }
+    if (["not_participating", "withdrawn_after_start", "missed_deadline", "canceled_or_paused"].includes(input.status) && (!reason || !comment)) {
+      throw new Error("Для закрытия обязательны причина и комментарий");
+    }
+
+    updateState((current) => {
+      const request = current.requests.find((item) => item.id === requestId);
+      if (!request || isFinalRequestStatus(request.currentStatus)) return current;
+      if (input.status === "lost" && request.offerAmount && input.ourPrice === undefined) {
+        throw new Error("Для проигрыша заполните нашу цену или очистите сумму КП в заявке");
+      }
+
+      const at = input.closedAt ? new Date(input.closedAt).toISOString() : nowIso();
+      const resultReceivedAt = input.resultReceivedAt ? new Date(input.resultReceivedAt).toISOString() : at;
+      const resultStatus: RequestResult = (input.status === "canceled_or_paused" ? "paused" : input.status) as RequestResult;
+      const requestClosedEvent = addEvent({ requestId, eventType: "request_closed", actorUserId, oldValue: request.currentStatus, newValue: input.status, comment }, at);
+      const specificEventType = input.status === "won"
+        ? "request_won"
+        : input.status === "lost"
+          ? "request_lost"
+          : input.status === "withdrawn_after_start"
+            ? "request_withdrawn"
+            : input.status === "not_participating"
+              ? "not_participating_recorded"
+              : undefined;
+
+      return {
+        ...current,
+        requests: current.requests.map((item) => item.id === requestId ? {
+          ...item,
+          currentStatus: input.status,
+          participationDecision: input.status === "not_participating" ? "rejected" : item.participationDecision,
+          nonParticipationReason: input.status === "not_participating" ? reason : item.nonParticipationReason,
+          resultStatus,
+          resultReceivedAt,
+          closedAt: at,
+          closedBy: actorUserId,
+          closureReason: reason,
+          closureComment: comment,
+          resultComment: comment,
+          lossReason: input.status === "lost" ? lossReason : item.lossReason,
+          ourPrice: input.ourPrice ?? item.ourPrice,
+          winnerPrice: input.winnerPrice ?? item.winnerPrice
+        } : item),
+        statusHistory: [{ id: makeId("h"), requestId, fromStatus: request.currentStatus, toStatus: input.status, changedBy: actorUserId, changedAt: at, comment }, ...current.statusHistory],
+        events: [
+          requestClosedEvent,
+          ...(specificEventType ? [addEvent({ requestId, eventType: specificEventType, actorUserId, newValue: input.status, comment: reason ? `${reason}: ${comment}` : comment }, at)] : []),
+          ...current.events
+        ]
+      };
+    });
+  }, []);
+
   const createTask = useCallback((requestId: string, input: CreateTaskInput) => {
     const createdAt = nowIso();
     const task: RequestTask = { id: makeId("t"), requestId, title: input.title, taskType: input.taskType ?? "prepare_offer", status: "new", createdBy: input.createdBy ?? DEFAULT_ACTOR_ID, assigneeUserId: input.assigneeUserId, assigneeExternalId: input.assigneeExternalId, plannedDueAt: input.plannedDueAt, createdAt, returnedCount: 0, comment: input.comment };
@@ -238,6 +317,7 @@ export function useCrmStore() {
     resetDemoData,
     createRequest,
     transitionRequest,
+    closeRequest,
     createTask,
     startTask: (taskId: string, actorUserId: string) => setTaskStatus(taskId, "in_progress", actorUserId),
     completeTask: (taskId: string, actorUserId: string, resultText?: string) => setTaskStatus(taskId, "completed", actorUserId, undefined, resultText),
@@ -245,5 +325,5 @@ export function useCrmStore() {
     acceptTask: (taskId: string, actorUserId: string) => setTaskStatus(taskId, "accepted", actorUserId),
     updateAppealAndFolder,
     updateNextAction
-  }), [snapshot, resetDemoData, createRequest, transitionRequest, createTask, setTaskStatus, updateAppealAndFolder, updateNextAction]);
+  }), [snapshot, resetDemoData, createRequest, transitionRequest, closeRequest, createTask, setTaskStatus, updateAppealAndFolder, updateNextAction]);
 }

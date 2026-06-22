@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Request, RequestTask } from "@/lib/types";
-import { isRequestProblem } from "@/lib/workflow";
+import { isFinalRequestStatus, isRequestProblem, statusLabels } from "@/lib/workflow";
 import { formatDateTime, formatMoney, getUserName } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
 
@@ -18,6 +18,7 @@ export function RequestTable({ requests, tasks }: { requests: Request[]; tasks: 
             <th>Следующее действие</th>
             <th>Ответственный</th>
             <th>КП</th>
+            <th>Результат</th>
           </tr>
         </thead>
         <tbody>
@@ -36,6 +37,13 @@ export function RequestTable({ requests, tasks }: { requests: Request[]; tasks: 
               <td>{request.nextActionText ?? <span className="dangerText">Нет следующего действия</span>}</td>
               <td>{getUserName(request.ownerUserId)}</td>
               <td>{formatMoney(request.offerAmount)}</td>
+              <td>{isFinalRequestStatus(request.currentStatus) ? (
+                <>
+                  <strong>{statusLabels[request.currentStatus]}</strong>
+                  <div className="small muted">{request.lossReason ?? request.closureReason ?? request.nonParticipationReason ?? "—"}</div>
+                  <div className="small muted">{formatDateTime(request.closedAt)}</div>
+                </>
+              ) : "—"}</td>
             </tr>
           ))}
         </tbody>
