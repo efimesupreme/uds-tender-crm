@@ -5,7 +5,8 @@ import { events, fileLinks, requests, statusHistory, tasks } from "./mock-data";
 import type { ContractAnalysisStatus, CostsStatus, DocumentsStatus, FeedbackStatus, FileLink, OfferStatus, ParticipationDecision, ProtocolStatus, Request, RequestEvent, RequestResult, RequestStatus, RequestTask, StatusHistoryItem, TaskStatus } from "./types";
 import { canTransitionRequest, createDefaultTasksForApprovedRequest, isFinalRequestStatus, type TaskType } from "./workflow";
 
-const STORAGE_KEY = "uds-tender-crm-demo-store-v1";
+export const STORAGE_KEY = "uds-tender-crm-demo-store-v1";
+const LEGACY_STORAGE_KEYS = ["uds-tender-crm-demo-store", "uds-tender-crm-store", "uds-tender-crm-demo-store-v0"];
 const DEFAULT_ACTOR_ID = "u-denis";
 
 export type CrmState = {
@@ -14,6 +15,7 @@ export type CrmState = {
   statusHistory: StatusHistoryItem[];
   events: RequestEvent[];
   fileLinks: FileLink[];
+  isHydrated: boolean;
 };
 
 type CreateRequestInput = {
@@ -63,7 +65,7 @@ type CreateTaskInput = {
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 function initialState(): CrmState {
-  return clone({ requests, tasks, statusHistory, events, fileLinks });
+  return clone({ requests, tasks, statusHistory, events, fileLinks, isHydrated: false });
 }
 
 let state: CrmState = initialState();
@@ -91,15 +93,15 @@ function readStoredState(): CrmState {
   if (!raw) {
     const seeded = initialState();
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-    return seeded;
+    return { ...seeded, isHydrated: true };
   }
 
   try {
-    return { ...initialState(), ...JSON.parse(raw) } as CrmState;
+    return { ...initialState(), ...JSON.parse(raw), isHydrated: true } as CrmState;
   } catch {
     const seeded = initialState();
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-    return seeded;
+    return { ...seeded, isHydrated: true };
   }
 }
 
@@ -147,7 +149,11 @@ export function useCrmStore() {
   const snapshot = useStoreState();
 
   const resetDemoData = useCallback(() => {
-    writeState(initialState());
+    if (isBrowser()) {
+      window.localStorage.removeItem(STORAGE_KEY);
+      LEGACY_STORAGE_KEYS.forEach((key) => window.localStorage.removeItem(key));
+    }
+    writeState({ ...initialState(), isHydrated: true });
   }, []);
 
   const createRequest = useCallback((input: CreateRequestInput) => {

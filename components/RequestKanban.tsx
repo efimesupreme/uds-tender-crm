@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { getRequestDetailsHref } from "@/lib/request-links";
 import { useMemo, useState, type DragEvent } from "react";
 import type { Request, RequestStatus, RequestTask } from "@/lib/types";
 import { canTransitionRequest, isRequestProblem, statusLabels } from "@/lib/workflow";
@@ -108,7 +109,7 @@ export function RequestKanban({
                 const overdue = isPast(request.submissionDeadlineAt) || isPast(request.nextActionDueAt);
                 return (
                   <Link
-                    href={`/requests/${request.id}`}
+                    href={getRequestDetailsHref(request.id)}
                     className={`kanbanCard${problem ? " problemRow" : ""}${draggedRequestId === request.id ? " kanbanCardDragging" : ""}`}
                     draggable
                     key={request.id}
