@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
+import { UserSwitcher } from "@/components/UserSwitcher";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <div className="appShell">
           <Nav />
-          <main className="main">{children}</main>
+          <main className="main"><div className="topBar"><UserSwitcher /></div>{children}</main>
         </div>
       </body>
     </html>

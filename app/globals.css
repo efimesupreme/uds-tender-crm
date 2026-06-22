@@ -473,3 +473,60 @@ tr:last-child td {
 .userSwitcher .formField {
   color: #d8e2f3;
 }
+
+.topBar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.topBar .userSwitcher {
+  margin-top: 0;
+  min-width: 190px;
+}
+
+.topBar .userSwitcher .formField {
+  color: var(--muted);
+}
+
+.automationList {
+  display: grid;
+  gap: 12px;
+}
+
+.automationItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.automationTitle {
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.priority {
+  display: inline-flex;
+  margin-top: 8px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.priority-high {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.priority-medium {
+  background: #fef3c7;
+  color: #92400e;
+}

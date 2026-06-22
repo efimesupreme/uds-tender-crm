@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { UserSwitcher } from "./UserSwitcher";
 
 const navItems = [
   { href: "/", label: "Дашборд" },
@@ -18,8 +17,6 @@ export function Nav() {
           <span>Входящие заявки и тендеры</span>
         </div>
       </div>
-      <UserSwitcher />
-
       <nav className="navList">
         {navItems.map((item) => (
           <Link href={item.href} key={item.href} className="navLink">

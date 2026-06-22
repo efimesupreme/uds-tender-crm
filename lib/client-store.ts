@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { events, fileLinks, requests, statusHistory, tasks } from "./mock-data";
 import type { ContractAnalysisStatus, CostsStatus, DocumentsStatus, FeedbackStatus, FileLink, OfferStatus, ParticipationDecision, ProtocolStatus, Request, RequestEvent, RequestResult, RequestStatus, RequestTask, StatusHistoryItem, TaskStatus } from "./types";
-import { canTransitionRequest, createDefaultTasksForApprovedRequest, isFinalRequestStatus, type TaskType } from "./workflow";
+import { hasActiveTask, type AutomationAction } from "./process-automation";
+import { canTransitionRequest, createDefaultTasksForApprovedRequest, isFinalRequestStatus, taskTypeLabels, type TaskType } from "./workflow";
 
 export const STORAGE_KEY = "uds-tender-crm-demo-store-v1";
 const LEGACY_STORAGE_KEYS = ["uds-tender-crm-demo-store", "uds-tender-crm-store", "uds-tender-crm-demo-store-v0"];
@@ -292,6 +293,49 @@ export function useCrmStore() {
     return task;
   }, []);
 
+
+  const createAutomationTask = useCallback((requestId: string, taskType: TaskType, title: string, assigneeUserId: string, actorUserId: string, comment: string) => {
+    const createdAt = nowIso();
+    let createdTask: RequestTask | undefined;
+    updateState((current) => {
+      const request = current.requests.find((item) => item.id === requestId);
+      if (!request || hasActiveTask(current.tasks, requestId, taskType)) return current;
+      createdTask = { id: makeId("t"), requestId, title, taskType, status: "new", createdBy: actorUserId, assigneeUserId, createdAt, returnedCount: 0, comment };
+      return {
+        ...current,
+        tasks: [createdTask, ...current.tasks],
+        events: [
+          addEvent({ requestId, taskId: createdTask.id, eventType: "automation_task_created", actorUserId, comment }, createdAt),
+          addEvent({ requestId, taskId: createdTask.id, eventType: "task_created", actorUserId, comment: title }, createdAt),
+          ...current.events
+        ]
+      };
+    });
+    return createdTask;
+  }, []);
+
+  const createOfferPreparationTask = useCallback((requestId: string, actorUserId = state.currentUserId) => createAutomationTask(requestId, "prepare_offer", taskTypeLabels.prepare_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подготовку КП"), [createAutomationTask]);
+  const createOwnerApprovalTask = useCallback((requestId: string, actorUserId = state.currentUserId) => createAutomationTask(requestId, "owner_approval", taskTypeLabels.owner_approval, "u-denis", actorUserId, "Автоматический сценарий: создана задача на согласование КП с МЛ"), [createAutomationTask]);
+  const createSubmissionTask = useCallback((requestId: string, actorUserId = state.currentUserId) => createAutomationTask(requestId, "submit_offer", taskTypeLabels.submit_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подачу КП"), [createAutomationTask]);
+  const createFeedbackTask = useCallback((requestId: string, actorUserId = state.currentUserId) => createAutomationTask(requestId, "request_feedback", taskTypeLabels.request_feedback, "u-katya", actorUserId, "Автоматический сценарий: создана задача на запрос обратной связи"), [createAutomationTask]);
+
+  const applyAutomationSuggestion = useCallback((suggestionId: string, actorUserId = state.currentUserId) => {
+    const [requestId, actionKey] = suggestionId.split(":");
+    const actionByKey: Partial<Record<string, AutomationAction>> = {
+      "prepare-offer": "create_offer_preparation_task",
+      "owner-approval": "create_owner_approval_task",
+      "submit-offer": "create_submission_task",
+      "plan-feedback": "create_feedback_task",
+      "overdue-feedback": "create_feedback_task"
+    };
+    const action = actionByKey[actionKey];
+    if (action === "create_offer_preparation_task") return createOfferPreparationTask(requestId, actorUserId);
+    if (action === "create_owner_approval_task") return createOwnerApprovalTask(requestId, actorUserId);
+    if (action === "create_submission_task") return createSubmissionTask(requestId, actorUserId);
+    if (action === "create_feedback_task") return createFeedbackTask(requestId, actorUserId);
+    return undefined;
+  }, [createFeedbackTask, createOfferPreparationTask, createOwnerApprovalTask, createSubmissionTask]);
+
   const setTaskStatus = useCallback((taskId: string, status: TaskStatus, actorUserId: string, comment?: string, resultText?: string) => {
     updateState((current) => {
       const task = current.tasks.find((item) => item.id === taskId);
@@ -389,6 +433,11 @@ export function useCrmStore() {
     transitionRequest,
     closeRequest,
     createTask,
+    createOfferPreparationTask,
+    createOwnerApprovalTask,
+    createSubmissionTask,
+    createFeedbackTask,
+    applyAutomationSuggestion,
     startTask: (taskId: string, actorUserId: string) => setTaskStatus(taskId, "in_progress", actorUserId),
     completeTask: (taskId: string, actorUserId: string, resultText?: string) => setTaskStatus(taskId, "completed", actorUserId, undefined, resultText),
     returnTask: (taskId: string, actorUserId: string, comment?: string) => setTaskStatus(taskId, "returned", actorUserId, comment),
@@ -401,5 +450,5 @@ export function useCrmStore() {
     updateDocumentsBlock,
     updateOfferBlock,
     updateFeedbackBlock
-  }), [snapshot, resetDemoData, createRequest, transitionRequest, closeRequest, createTask, setTaskStatus, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock]);
+  }), [snapshot, resetDemoData, createRequest, transitionRequest, closeRequest, createTask, createOfferPreparationTask, createOwnerApprovalTask, createSubmissionTask, createFeedbackTask, applyAutomationSuggestion, setTaskStatus, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock]);
 }
