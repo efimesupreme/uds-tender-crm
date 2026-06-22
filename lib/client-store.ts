@@ -85,7 +85,7 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function makeId(prefix: string) {
+function generateId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
   }
@@ -133,8 +133,32 @@ function normalizeDate(value?: string) {
 function normalizeText(value?: string) {
   return value?.trim() || undefined;
 }
-function addEvent(input: Omit<RequestEvent, "id" | "createdAt">, createdAt = nowIso()): RequestEvent {
-  return { id: makeId("ev"), createdAt, ...input };
+function generateRequestId() {
+  return generateId("r");
+}
+
+function generateTaskId() {
+  return generateId("t");
+}
+
+function createEvent(input: Omit<RequestEvent, "id" | "createdAt">, createdAt = nowIso()): RequestEvent {
+  return { id: generateId("ev"), createdAt, ...input };
+}
+
+function createStatusHistoryItem(input: Omit<StatusHistoryItem, "id" | "changedAt">, changedAt = nowIso()): StatusHistoryItem {
+  return { id: generateId("h"), changedAt, ...input };
+}
+
+function updateRequestById(requests: Request[], requestId: string, updater: (request: Request) => Request): Request[] {
+  return requests.map((request) => request.id === requestId ? updater(request) : request);
+}
+
+function updateTaskById(tasks: RequestTask[], taskId: string, updater: (task: RequestTask) => RequestTask): RequestTask[] {
+  return tasks.map((task) => task.id === taskId ? updater(task) : task);
+}
+
+function getCurrentUserOrFallback(userId?: string): string {
+  return userId?.trim() || DEFAULT_USER_ID;
 }
 
 function useStoreState() {
@@ -165,12 +189,12 @@ export function useCrmStore() {
   }, []);
 
   const setCurrentUser = useCallback((userId: string) => {
-    writeState({ ...state, currentUserId: userId || DEFAULT_USER_ID });
+    writeState({ ...state, currentUserId: getCurrentUserOrFallback(userId) });
   }, []);
 
-  const createRequest = useCallback((input: CreateRequestInput, actorUserId = state.currentUserId) => {
+  const createRequest = useCallback((input: CreateRequestInput, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => {
     const createdAt = nowIso();
-    const requestId = makeId("r");
+    const requestId = generateRequestId();
     const nextNumber = `T-${new Date().getFullYear()}-${String(state.requests.length + 1).padStart(3, "0")}`;
     const newRequest: Request = {
       id: requestId,
@@ -192,8 +216,8 @@ export function useCrmStore() {
     updateState((current) => ({
       ...current,
       requests: [newRequest, ...current.requests],
-      statusHistory: [{ id: makeId("h"), requestId, toStatus: "new", changedBy: actorUserId, changedAt: createdAt }, ...current.statusHistory],
-      events: [addEvent({ requestId, eventType: "request_created", actorUserId, comment: "Заявка создана" }, createdAt), ...current.events]
+      statusHistory: [createStatusHistoryItem({ requestId, toStatus: "new", changedBy: actorUserId }, createdAt), ...current.statusHistory],
+      events: [createEvent({ requestId, eventType: "request_created", actorUserId, comment: "Заявка создана" }, createdAt), ...current.events]
     }));
     return newRequest;
   }, []);
@@ -211,17 +235,17 @@ export function useCrmStore() {
       if (!result.allowed) return current;
       const changedAt = nowIso();
       const defaultTasks = toStatus === "participation_approved" && !current.tasks.some((task) => task.requestId === requestId)
-        ? createDefaultTasksForApprovedRequest(requestId, actorUserId).map((task) => ({ ...task, id: makeId("t") }))
+        ? createDefaultTasksForApprovedRequest(requestId, actorUserId).map((task) => ({ ...task, id: generateTaskId() }))
         : [];
 
       return {
         ...current,
-        requests: current.requests.map((item) => item.id === requestId ? { ...item, currentStatus: toStatus, participationDecision: toStatus === "participation_approved" ? "approved" : item.participationDecision } : item),
+        requests: updateRequestById(current.requests, requestId, (item) => ({ ...item, currentStatus: toStatus, participationDecision: toStatus === "participation_approved" ? "approved" : item.participationDecision })),
         tasks: [...defaultTasks, ...current.tasks],
-        statusHistory: [{ id: makeId("h"), requestId, fromStatus: request.currentStatus, toStatus, changedBy: actorUserId, changedAt, comment }, ...current.statusHistory],
+        statusHistory: [createStatusHistoryItem({ requestId, fromStatus: request.currentStatus, toStatus, changedBy: actorUserId, comment }, changedAt), ...current.statusHistory],
         events: [
-          addEvent({ requestId, eventType: "status_changed", actorUserId, oldValue: request.currentStatus, newValue: toStatus, comment }, changedAt),
-          ...defaultTasks.map((task) => addEvent({ requestId, taskId: task.id, eventType: "task_created", actorUserId, comment: task.title }, changedAt)),
+          createEvent({ requestId, eventType: "status_changed", actorUserId, oldValue: request.currentStatus, newValue: toStatus, comment }, changedAt),
+          ...defaultTasks.map((task) => createEvent({ requestId, taskId: task.id, eventType: "task_created", actorUserId, comment: task.title }, changedAt)),
           ...current.events
         ]
       };
@@ -258,7 +282,7 @@ export function useCrmStore() {
       const at = input.closedAt ? new Date(input.closedAt).toISOString() : nowIso();
       const resultReceivedAt = input.resultReceivedAt ? new Date(input.resultReceivedAt).toISOString() : at;
       const resultStatus: RequestResult = (input.status === "canceled_or_paused" ? "paused" : input.status) as RequestResult;
-      const requestClosedEvent = addEvent({ requestId, eventType: "request_closed", actorUserId, oldValue: request.currentStatus, newValue: input.status, comment }, at);
+      const requestClosedEvent = createEvent({ requestId, eventType: "request_closed", actorUserId, oldValue: request.currentStatus, newValue: input.status, comment }, at);
       const specificEventType = input.status === "won"
         ? "request_won"
         : input.status === "lost"
@@ -271,7 +295,7 @@ export function useCrmStore() {
 
       return {
         ...current,
-        requests: current.requests.map((item) => item.id === requestId ? {
+        requests: updateRequestById(current.requests, requestId, (item) => ({
           ...item,
           currentStatus: input.status,
           participationDecision: input.status === "not_participating" ? "rejected" : item.participationDecision,
@@ -286,11 +310,11 @@ export function useCrmStore() {
           lossReason: input.status === "lost" ? lossReason : item.lossReason,
           ourPrice: input.ourPrice ?? item.ourPrice,
           winnerPrice: input.winnerPrice ?? item.winnerPrice
-        } : item),
-        statusHistory: [{ id: makeId("h"), requestId, fromStatus: request.currentStatus, toStatus: input.status, changedBy: actorUserId, changedAt: at, comment }, ...current.statusHistory],
+        })),
+        statusHistory: [createStatusHistoryItem({ requestId, fromStatus: request.currentStatus, toStatus: input.status, changedBy: actorUserId, comment }, at), ...current.statusHistory],
         events: [
           requestClosedEvent,
-          ...(specificEventType ? [addEvent({ requestId, eventType: specificEventType, actorUserId, newValue: input.status, comment: reason ? `${reason}: ${comment}` : comment }, at)] : []),
+          ...(specificEventType ? [createEvent({ requestId, eventType: specificEventType, actorUserId, newValue: input.status, comment: reason ? `${reason}: ${comment}` : comment }, at)] : []),
           ...current.events
         ]
       };
@@ -299,8 +323,8 @@ export function useCrmStore() {
 
   const createTask = useCallback((requestId: string, input: CreateTaskInput) => {
     const createdAt = nowIso();
-    const task: RequestTask = { id: makeId("t"), requestId, title: input.title, taskType: input.taskType ?? "prepare_offer", status: "new", createdBy: input.createdBy ?? DEFAULT_ACTOR_ID, assigneeUserId: input.assigneeUserId, assigneeExternalId: input.assigneeExternalId, plannedDueAt: input.plannedDueAt, createdAt, returnedCount: 0, comment: input.comment };
-    updateState((current) => ({ ...current, tasks: [task, ...current.tasks], events: [addEvent({ requestId, taskId: task.id, eventType: "task_created", actorUserId: task.createdBy, comment: task.title }, createdAt), ...current.events] }));
+    const task: RequestTask = { id: generateTaskId(), requestId, title: input.title, taskType: input.taskType ?? "prepare_offer", status: "new", createdBy: input.createdBy ?? DEFAULT_ACTOR_ID, assigneeUserId: input.assigneeUserId, assigneeExternalId: input.assigneeExternalId, plannedDueAt: input.plannedDueAt, createdAt, returnedCount: 0, comment: input.comment };
+    updateState((current) => ({ ...current, tasks: [task, ...current.tasks], events: [createEvent({ requestId, taskId: task.id, eventType: "task_created", actorUserId: task.createdBy, comment: task.title }, createdAt), ...current.events] }));
     return task;
   }, []);
 
@@ -311,13 +335,13 @@ export function useCrmStore() {
     updateState((current) => {
       const request = current.requests.find((item) => item.id === requestId);
       if (!request || hasActiveTask(current.tasks, requestId, taskType)) return current;
-      createdTask = { id: makeId("t"), requestId, title, taskType, status: "new", createdBy: actorUserId, assigneeUserId, createdAt, returnedCount: 0, comment };
+      createdTask = { id: generateTaskId(), requestId, title, taskType, status: "new", createdBy: actorUserId, assigneeUserId, createdAt, returnedCount: 0, comment };
       return {
         ...current,
         tasks: [createdTask, ...current.tasks],
         events: [
-          addEvent({ requestId, taskId: createdTask.id, eventType: "automation_task_created", actorUserId, comment }, createdAt),
-          addEvent({ requestId, taskId: createdTask.id, eventType: "task_created", actorUserId, comment: title }, createdAt),
+          createEvent({ requestId, taskId: createdTask.id, eventType: "automation_task_created", actorUserId, comment }, createdAt),
+          createEvent({ requestId, taskId: createdTask.id, eventType: "task_created", actorUserId, comment: title }, createdAt),
           ...current.events
         ]
       };
@@ -325,12 +349,12 @@ export function useCrmStore() {
     return createdTask;
   }, []);
 
-  const createOfferPreparationTask = useCallback((requestId: string, actorUserId = state.currentUserId) => createAutomationTask(requestId, "prepare_offer", taskTypeLabels.prepare_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подготовку КП"), [createAutomationTask]);
-  const createOwnerApprovalTask = useCallback((requestId: string, actorUserId = state.currentUserId) => createAutomationTask(requestId, "owner_approval", taskTypeLabels.owner_approval, "u-denis", actorUserId, "Автоматический сценарий: создана задача на согласование КП с МЛ"), [createAutomationTask]);
-  const createSubmissionTask = useCallback((requestId: string, actorUserId = state.currentUserId) => createAutomationTask(requestId, "submit_offer", taskTypeLabels.submit_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подачу КП"), [createAutomationTask]);
-  const createFeedbackTask = useCallback((requestId: string, actorUserId = state.currentUserId) => createAutomationTask(requestId, "request_feedback", taskTypeLabels.request_feedback, "u-katya", actorUserId, "Автоматический сценарий: создана задача на запрос обратной связи"), [createAutomationTask]);
+  const createOfferPreparationTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "prepare_offer", taskTypeLabels.prepare_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подготовку КП"), [createAutomationTask]);
+  const createOwnerApprovalTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "owner_approval", taskTypeLabels.owner_approval, "u-denis", actorUserId, "Автоматический сценарий: создана задача на согласование КП с МЛ"), [createAutomationTask]);
+  const createSubmissionTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "submit_offer", taskTypeLabels.submit_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подачу КП"), [createAutomationTask]);
+  const createFeedbackTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "request_feedback", taskTypeLabels.request_feedback, "u-katya", actorUserId, "Автоматический сценарий: создана задача на запрос обратной связи"), [createAutomationTask]);
 
-  const applyAutomationSuggestion = useCallback((suggestionId: string, actorUserId = state.currentUserId) => {
+  const applyAutomationSuggestion = useCallback((suggestionId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => {
     const [requestId, actionKey] = suggestionId.split(":");
     const actionByKey: Partial<Record<string, AutomationAction>> = {
       "prepare-offer": "create_offer_preparation_task",
@@ -354,8 +378,8 @@ export function useCrmStore() {
       const at = nowIso();
       return {
         ...current,
-        tasks: current.tasks.map((item) => item.id === taskId ? { ...item, status, comment: comment ?? item.comment, resultText: resultText ?? item.resultText, completedAt: status === "completed" ? at : item.completedAt, returnedCount: status === "returned" ? item.returnedCount + 1 : item.returnedCount } : item),
-        events: [addEvent({ requestId: task.requestId, taskId, eventType: `task_${status}`, actorUserId, comment: resultText ?? comment }, at), ...current.events]
+        tasks: updateTaskById(current.tasks, taskId, (item) => ({ ...item, status, comment: comment ?? item.comment, resultText: resultText ?? item.resultText, completedAt: status === "completed" ? at : item.completedAt, returnedCount: status === "returned" ? item.returnedCount + 1 : item.returnedCount })),
+        events: [createEvent({ requestId: task.requestId, taskId, eventType: `task_${status}`, actorUserId, comment: resultText ?? comment }, at), ...current.events]
       };
     });
   }, []);
@@ -377,10 +401,10 @@ export function useCrmStore() {
 
       return {
         ...current,
-        requests: current.requests.map((item) => item.id === requestId ? { ...item, appealNumber, workingFolderUrl, folderCreatedAt } : item),
+        requests: updateRequestById(current.requests, requestId, (item) => ({ ...item, appealNumber, workingFolderUrl, folderCreatedAt })),
         events: [
-          ...(ready ? [addEvent({ requestId, eventType: "working_folder_ready", actorUserId, comment: "Заполнены номер обращения и рабочая папка" }, at)] : []),
-          addEvent({ requestId, eventType: "appeal_and_folder_updated", actorUserId, oldValue: `${request.appealNumber ?? "—"} | ${request.workingFolderUrl ?? "—"}`, newValue: `${appealNumber ?? "—"} | ${workingFolderUrl ?? "—"}`, comment: "Обновлены обращение и рабочая папка" }, at),
+          ...(ready ? [createEvent({ requestId, eventType: "working_folder_ready", actorUserId, comment: "Заполнены номер обращения и рабочая папка" }, at)] : []),
+          createEvent({ requestId, eventType: "appeal_and_folder_updated", actorUserId, oldValue: `${request.appealNumber ?? "—"} | ${request.workingFolderUrl ?? "—"}`, newValue: `${appealNumber ?? "—"} | ${workingFolderUrl ?? "—"}`, comment: "Обновлены обращение и рабочая папка" }, at),
           ...current.events
         ]
       };
@@ -393,8 +417,8 @@ export function useCrmStore() {
       if (!current.requests.some((item) => item.id === requestId)) return current;
       return {
         ...current,
-        requests: current.requests.map((item) => item.id === requestId ? { ...item, ...patch } : item),
-        events: [addEvent({ requestId, eventType, actorUserId, comment }, at), ...current.events]
+        requests: updateRequestById(current.requests, requestId, (item) => ({ ...item, ...patch })),
+        events: [createEvent({ requestId, eventType, actorUserId, comment }, at), ...current.events]
       };
     });
   }, []);
@@ -427,12 +451,12 @@ export function useCrmStore() {
     nextActionDueAt: normalizeDate(input.nextActionDueAt), feedbackStatus: input.feedbackStatus as FeedbackStatus, feedbackReceivedAt: normalizeDate(input.feedbackReceivedAt), feedbackCustomerComment: normalizeText(input.feedbackCustomerComment), nextActionText: normalizeText(input.nextActionText)
   }, "feedback_block_updated", actorUserId, "Обновлён блок обратной связи"), [updateRequestBlock]);
 
-  const updateNextAction = useCallback((requestId: string, text: string, dueAt: string, ownerId: string, actorUserId = state.currentUserId) => {
+  const updateNextAction = useCallback((requestId: string, text: string, dueAt: string, ownerId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => {
     const at = nowIso();
     updateState((current) => ({
       ...current,
-      requests: current.requests.map((item) => item.id === requestId ? { ...item, nextActionText: text, nextActionDueAt: dueAt ? new Date(dueAt).toISOString() : undefined, nextActionOwnerId: ownerId } : item),
-      events: [addEvent({ requestId, eventType: "next_action_updated", actorUserId, comment: text }, at), ...current.events]
+      requests: updateRequestById(current.requests, requestId, (item) => ({ ...item, nextActionText: text, nextActionDueAt: dueAt ? new Date(dueAt).toISOString() : undefined, nextActionOwnerId: ownerId })),
+      events: [createEvent({ requestId, eventType: "next_action_updated", actorUserId, comment: text }, at), ...current.events]
     }));
   }, []);
 
