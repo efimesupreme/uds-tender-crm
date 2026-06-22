@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { getRequestDetailsHref } from "@/lib/request-links";
 import { RequestTable } from "@/components/RequestTable";
+import { AutomationSuggestions } from "@/components/AutomationSuggestions";
 import { TaskList } from "@/components/TaskList";
 import { useCrmStore } from "@/lib/client-store";
 import { getAverageStageDurations, getProcessBottlenecks } from "@/lib/metrics";
 import { formatMoney } from "@/lib/utils";
 import { isActiveRequest, isRequestProblem, isTaskOverdue } from "@/lib/workflow";
+import { getAutomationSuggestions, getSuggestionsForUser } from "@/lib/process-automation";
 import { DENIS_USER_ID, getDenisFocus, getKatyaFocus } from "@/lib/user-workspace";
 
 export default function DashboardPage() {
-  const { requests, tasks, statusHistory, currentUserId, isHydrated } = useCrmStore();
+  const { requests, tasks, events, statusHistory, currentUserId, isHydrated, applyAutomationSuggestion } = useCrmStore();
 
   if (!isHydrated) {
     return <div className="card" role="status">Загрузка демо-данных…</div>;
@@ -26,6 +28,7 @@ export default function DashboardPage() {
   const denisFocus = getDenisFocus(requests, tasks);
   const katyaFocus = getKatyaFocus(requests);
   const isDenis = currentUserId === DENIS_USER_ID;
+  const automationSuggestions = getSuggestionsForUser(requests.flatMap((request) => getAutomationSuggestions(request, tasks, events, new Date())), currentUserId);
   const closedStats = {
     won: requests.filter((request) => request.currentStatus === "won").length,
     lost: requests.filter((request) => request.currentStatus === "lost").length,
@@ -85,6 +88,11 @@ export default function DashboardPage() {
             </>
           )}
         </div>
+      </section>
+
+      <section className="card">
+        <h2>Предлагаемые действия</h2>
+        <AutomationSuggestions suggestions={automationSuggestions} requests={requests} onApply={(suggestionId) => applyAutomationSuggestion(suggestionId, currentUserId)} />
       </section>
 
       <section className="card">

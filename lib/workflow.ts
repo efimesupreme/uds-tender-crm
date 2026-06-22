@@ -93,6 +93,8 @@ export const taskTypes = [
   "owner_approval",
   "submit_offer",
   "request_feedback",
+  "clarify_documents",
+  "management_decision",
   "record_result"
 ] as const;
 
@@ -113,6 +115,8 @@ export const taskTypeLabels: Record<TaskType, string> = {
   owner_approval: "Согласовать КП с МЛ",
   submit_offer: "Подать КП",
   request_feedback: "Запросить обратную связь",
+  clarify_documents: "Уточнить документы",
+  management_decision: "Управленческое решение",
   record_result: "Зафиксировать результат"
 };
 

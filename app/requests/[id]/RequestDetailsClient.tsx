@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
+import { AutomationSuggestions } from "@/components/AutomationSuggestions";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TaskList } from "@/components/TaskList";
 import { useCrmStore } from "@/lib/client-store";
 import { buildFolderName, getFolderTemplate, getRequestFolderLinks } from "@/lib/folder-structure";
 import { getRequestStageDurations } from "@/lib/metrics";
+import { getAutomationSuggestions } from "@/lib/process-automation";
 import { users } from "@/lib/mock-data";
 import { formatDateTime, formatMoney, getExternalName, getStatusLabel, getUserName } from "@/lib/utils";
 import { closureReasonOptionsByStatus, contractAnalysisStatusOptions, costsStatusOptions, documentsStatusOptions, feedbackStatusOptions, finalRequestStatuses, getNextAllowedStatuses, isFinalRequestStatus, offerStatusOptions, participationDecisionOptions, protocolStatusOptions, statusLabels } from "@/lib/workflow";
 
 export default function RequestDetailsClient({ id, embedded = false }: { id: string; embedded?: boolean }) {
-  const { requests, tasks, fileLinks, events, statusHistory, currentUserId, transitionRequest, closeRequest, startTask, completeTask, returnTask, acceptTask, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock } = useCrmStore();
+  const { requests, tasks, fileLinks, events, statusHistory, currentUserId, transitionRequest, closeRequest, startTask, completeTask, returnTask, acceptTask, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock, applyAutomationSuggestion } = useCrmStore();
   const request = requests.find((item) => item.id === id);
   const [nextAction, setNextAction] = useState({ text: request?.nextActionText ?? "", dueAt: request?.nextActionDueAt ? request.nextActionDueAt.slice(0, 16) : "", ownerId: request?.nextActionOwnerId ?? request?.ownerUserId ?? currentUserId });
   const [folderForm, setFolderForm] = useState({ appealNumber: request?.appealNumber ?? "", workingFolderUrl: request?.workingFolderUrl ?? "" });
@@ -92,6 +94,7 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
   const folderLinks = getRequestFolderLinks(request);
   const folderTemplate = getFolderTemplate();
   const recommendedFolderName = buildFolderName(request);
+  const automationSuggestions = getAutomationSuggestions(request, tasks, events, new Date());
 
   return (
     <>
@@ -119,6 +122,11 @@ export default function RequestDetailsClient({ id, embedded = false }: { id: str
         </div>
 
 
+
+        <div className="card">
+          <h2>Предлагаемые действия по заявке</h2>
+          <AutomationSuggestions suggestions={automationSuggestions} requests={[request]} onApply={(suggestionId) => applyAutomationSuggestion(suggestionId, currentUserId)} showRequestLink={false} />
+        </div>
 
         <div className="card">
           <h2>Доступные переходы статуса</h2>
