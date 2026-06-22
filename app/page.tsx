@@ -2,12 +2,13 @@ import Link from "next/link";
 import { RequestTable } from "@/components/RequestTable";
 import { TaskList } from "@/components/TaskList";
 import { requests, tasks } from "@/lib/mock-data";
-import { formatMoney, isRequestProblem, isTaskOverdue } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
+import { isActiveRequest, isRequestProblem, isTaskOverdue } from "@/lib/workflow";
 
 export default function DashboardPage() {
-  const activeRequests = requests.filter((request) => !["won", "lost", "not_participating", "missed_deadline", "canceled_or_paused"].includes(request.currentStatus));
+  const activeRequests = requests.filter((request) => isActiveRequest(request.currentStatus));
   const problemRequests = requests.filter((request) => isRequestProblem(request, tasks));
-  const overdueTasks = tasks.filter(isTaskOverdue);
+  const overdueTasks = tasks.filter((task) => isTaskOverdue(task));
   const ownerApprovalRequests = requests.filter((request) => request.currentStatus === "owner_approval");
   const activeOfferSum = activeRequests.reduce((sum, request) => sum + (request.offerAmount ?? 0), 0);
 

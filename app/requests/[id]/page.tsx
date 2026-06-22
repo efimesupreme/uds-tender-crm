@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { TaskList } from "@/components/TaskList";
 import { events, fileLinks, requests, statusHistory, tasks } from "@/lib/mock-data";
 import { formatDateTime, formatMoney, getExternalName, getStatusLabel, getUserName } from "@/lib/utils";
+import { getNextAllowedStatuses } from "@/lib/workflow";
 
 export function generateStaticParams() {
   return requests.map((request) => ({
@@ -25,6 +26,7 @@ export default async function RequestDetailsPage({ params }: { params: Promise<{
   const requestFiles = fileLinks.filter((link) => link.requestId === request.id);
   const requestEvents = events.filter((event) => event.requestId === request.id);
   const requestHistory = statusHistory.filter((item) => item.requestId === request.id);
+  const nextStatuses = getNextAllowedStatuses(request.currentStatus);
 
   return (
     <>
@@ -46,6 +48,7 @@ export default async function RequestDetailsPage({ params }: { params: Promise<{
             <div className="field"><span>Ответственный</span><strong>{getUserName(request.ownerUserId)}</strong></div>
             <div className="field"><span>Следующее действие</span><strong>{request.nextActionText ?? "Не задано"}</strong></div>
             <div className="field"><span>Срок действия</span><strong>{formatDateTime(request.nextActionDueAt)}</strong></div>
+            <div className="field"><span>Следующие статусы</span><strong>{nextStatuses.length > 0 ? nextStatuses.map(getStatusLabel).join(", ") : "Финальный статус"}</strong></div>
             <div className="field"><span>Сумма КП</span><strong>{formatMoney(request.offerAmount)}</strong></div>
           </div>
         </div>

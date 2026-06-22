@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Request, RequestTask } from "@/lib/types";
-import { formatDateTime, formatMoney, getUserName, isRequestProblem } from "@/lib/utils";
+import { isRequestProblem } from "@/lib/workflow";
+import { formatDateTime, formatMoney, getUserName } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
 
 export function RequestTable({ requests, tasks }: { requests: Request[]; tasks: RequestTask[] }) {

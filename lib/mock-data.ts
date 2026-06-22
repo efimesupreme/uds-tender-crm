@@ -13,27 +13,6 @@ export const externalParticipants: ExternalParticipant[] = [
   { id: "e-customer", name: "Заказчик", type: "customer" }
 ];
 
-export const statusLabels: Record<Request["currentStatus"], string> = {
-  new: "Новая заявка",
-  participation_decision: "На решении об участии",
-  not_participating: "Не участвуем",
-  participation_approved: "Участие согласовано",
-  appeal_and_folder: "Заведение обращения и папки",
-  materials_preparation: "Подготовка материалов",
-  materials_received: "Материалы получены",
-  internal_approval: "Внутреннее согласование",
-  costs_approved: "Затраты утверждены",
-  offer_preparation: "КП в подготовке",
-  owner_approval: "КП на согласовании у МЛ",
-  ready_to_submit: "КП готово к подаче",
-  submitted: "КП подано",
-  feedback_waiting: "Ожидание обратной связи",
-  won: "Победили",
-  lost: "Проиграли",
-  withdrawn_after_start: "Отказались после запуска",
-  missed_deadline: "Не успели податься",
-  canceled_or_paused: "Отменено / пауза"
-};
 
 export const requests: Request[] = [
   {
@@ -210,7 +189,8 @@ export const tasks: RequestTask[] = [
 export const statusHistory: StatusHistoryItem[] = [
   { id: "h-001", requestId: "r-001", toStatus: "new", changedBy: "u-denis", changedAt: "2026-06-20T10:15:00+03:00" },
   { id: "h-002", requestId: "r-001", fromStatus: "new", toStatus: "participation_decision", changedBy: "u-denis", changedAt: "2026-06-20T10:30:00+03:00" },
-  { id: "h-003", requestId: "r-001", fromStatus: "participation_decision", toStatus: "materials_preparation", changedBy: "u-denis", changedAt: "2026-06-20T13:10:00+03:00" }
+  { id: "h-003", requestId: "r-001", fromStatus: "participation_decision", toStatus: "participation_approved", changedBy: "u-denis", changedAt: "2026-06-20T13:10:00+03:00" },
+  { id: "h-004", requestId: "r-001", fromStatus: "participation_approved", toStatus: "materials_preparation", changedBy: "u-denis", changedAt: "2026-06-20T13:20:00+03:00" }
 ];
 
 export const events: RequestEvent[] = [

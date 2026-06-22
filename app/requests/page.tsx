@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { RequestTable } from "@/components/RequestTable";
 import { requests, tasks } from "@/lib/mock-data";
+import { requestStatuses, statusLabels } from "@/lib/workflow";
 
 export default function RequestsPage() {
   const [query, setQuery] = useState("");
@@ -35,14 +36,9 @@ export default function RequestsPage() {
         />
         <select className="select" value={status} onChange={(event) => setStatus(event.target.value)}>
           <option value="all">Все статусы</option>
-          <option value="new">Новая заявка</option>
-          <option value="participation_decision">На решении об участии</option>
-          <option value="materials_preparation">Подготовка материалов</option>
-          <option value="owner_approval">КП на согласовании у МЛ</option>
-          <option value="not_participating">Не участвуем</option>
-          <option value="won">Победили</option>
-          <option value="lost">Проиграли</option>
-          <option value="missed_deadline">Не успели податься</option>
+          {requestStatuses.map((requestStatus) => (
+            <option value={requestStatus} key={requestStatus}>{statusLabels[requestStatus]}</option>
+          ))}
         </select>
       </div>
 

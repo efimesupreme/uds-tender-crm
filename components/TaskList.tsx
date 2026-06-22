@@ -1,5 +1,6 @@
 import type { RequestTask } from "@/lib/types";
-import { formatDateTime, getAssigneeName, isTaskOverdue } from "@/lib/utils";
+import { isTaskOverdue } from "@/lib/workflow";
+import { formatDateTime, getAssigneeName } from "@/lib/utils";
 import { TaskStatusBadge } from "./StatusBadge";
 
 export function TaskList({ tasks }: { tasks: RequestTask[] }) {
