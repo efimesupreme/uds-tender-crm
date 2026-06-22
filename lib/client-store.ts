@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { events, fileLinks, requests, statusHistory, tasks } from "./mock-data";
 import type { ContractAnalysisStatus, CostsStatus, DocumentsStatus, FeedbackStatus, FileLink, OfferStatus, ParticipationDecision, ProtocolStatus, Request, RequestEvent, RequestResult, RequestStatus, RequestTask, StatusHistoryItem, TaskStatus } from "./types";
 import { hasActiveTask, type AutomationAction } from "./process-automation";
+import { validateRequestTransition, type TransitionValidationResult } from "./transition-guards";
 import { canTransitionRequest, createDefaultTasksForApprovedRequest, isFinalRequestStatus, taskTypeLabels, type TaskType } from "./workflow";
 
 export const STORAGE_KEY = "uds-tender-crm-demo-store-v1";
@@ -54,6 +55,8 @@ type UpdateContractBlockInput = Pick<Request, "contractHasDraft" | "contractAnal
 type UpdateDocumentsBlockInput = Pick<Request, "documentsStatus" | "documentsResponsibleId" | "documentsMissingText" | "documentsReadyAt" | "documentsComment">;
 type UpdateOfferBlockInput = Pick<Request, "offerCostsTransferredToKatyaAt" | "offerStatus" | "offerAmount" | "offerPreparedAt" | "offerSentToMlAt" | "offerMlApprovedAt" | "offerReturnCount" | "submissionMethod" | "submissionSubmittedBy" | "submissionSubmittedAt" | "offerComment">;
 type UpdateFeedbackBlockInput = Pick<Request, "nextActionDueAt" | "feedbackStatus" | "feedbackReceivedAt" | "feedbackCustomerComment" | "nextActionText">;
+
+export type TransitionRequestResult = TransitionValidationResult & { warnings: string[] };
 
 type CreateTaskInput = {
   title: string;
@@ -195,10 +198,17 @@ export function useCrmStore() {
     return newRequest;
   }, []);
 
-  const transitionRequest = useCallback((requestId: string, toStatus: RequestStatus, actorUserId: string, comment?: string) => {
+  const transitionRequest = useCallback((requestId: string, toStatus: RequestStatus, actorUserId: string, comment?: string): TransitionRequestResult => {
+    let result: TransitionRequestResult = { allowed: false, errors: ["Заявка не найдена"], warnings: [] };
     updateState((current) => {
       const request = current.requests.find((item) => item.id === requestId);
-      if (!request || !canTransitionRequest(request.currentStatus, toStatus)) return current;
+      if (!request) return current;
+      if (!canTransitionRequest(request.currentStatus, toStatus)) {
+        result = { allowed: false, errors: ["Переход не разрешён процессом"], warnings: [] };
+        return current;
+      }
+      result = validateRequestTransition(request, current.tasks, request.currentStatus, toStatus);
+      if (!result.allowed) return current;
       const changedAt = nowIso();
       const defaultTasks = toStatus === "participation_approved" && !current.tasks.some((task) => task.requestId === requestId)
         ? createDefaultTasksForApprovedRequest(requestId, actorUserId).map((task) => ({ ...task, id: makeId("t") }))
@@ -216,6 +226,7 @@ export function useCrmStore() {
         ]
       };
     });
+    return result;
   }, []);
 
 

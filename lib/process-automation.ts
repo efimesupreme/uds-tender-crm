@@ -1,5 +1,6 @@
 import type { Request, RequestEvent, RequestTask } from "./types";
 import type { TaskType } from "./workflow";
+import { validateRequestTransition } from "./transition-guards";
 import { isFinalRequestStatus } from "./workflow";
 
 export type AutomationAction =
@@ -49,40 +50,43 @@ export function getAutomationSuggestions(request: Request, tasks: RequestTask[],
     });
   }
 
+  const offerPreparationGuard = validateRequestTransition(request, tasks, request.currentStatus, "offer_preparation");
   if (request.costsStatus === "approved" && request.offerStatus !== "in_progress" && request.offerStatus !== "ready" && request.offerStatus !== "with_ml" && request.offerStatus !== "approved" && !hasActiveTask(tasks, request.id, "prepare_offer")) {
     suggestions.push({
       id: `${request.id}:prepare-offer`,
       requestId: request.id,
       title: "Создать задачу Кате на подготовку КП",
-      reason: "Затраты утверждены, а подготовка КП ещё не начата и активной задачи на КП нет.",
-      action: "create_offer_preparation_task",
-      actionLabel: "Создать задачу на КП",
+      reason: offerPreparationGuard.allowed ? "Затраты утверждены, а подготовка КП ещё не начата и активной задачи на КП нет." : `Сначала заполните данные для перехода к КП: ${offerPreparationGuard.errors.join(", ")}.`,
+      action: offerPreparationGuard.allowed ? "create_offer_preparation_task" : undefined,
+      actionLabel: offerPreparationGuard.allowed ? "Создать задачу на КП" : undefined,
       audience: "u-katya",
       priority: "high"
     });
   }
 
+  const ownerApprovalGuard = validateRequestTransition(request, tasks, request.currentStatus, "owner_approval");
   if (request.offerStatus === "ready" && !request.offerSentToMlAt && !hasActiveTask(tasks, request.id, "owner_approval")) {
     suggestions.push({
       id: `${request.id}:owner-approval`,
       requestId: request.id,
       title: "Передать КП на согласование МЛ",
-      reason: "КП готово, но дата передачи на согласование МЛ не заполнена и активной задачи на согласование нет.",
-      action: "create_owner_approval_task",
-      actionLabel: "Создать задачу на согласование МЛ",
+      reason: ownerApprovalGuard.allowed ? "КП готово, но дата передачи на согласование МЛ не заполнена и активной задачи на согласование нет." : `Сначала заполните данные для передачи КП на согласование: ${ownerApprovalGuard.errors.join(", ")}.`,
+      action: ownerApprovalGuard.allowed ? "create_owner_approval_task" : undefined,
+      actionLabel: ownerApprovalGuard.allowed ? "Создать задачу на согласование МЛ" : undefined,
       audience: "u-katya",
       priority: "medium"
     });
   }
 
+  const submitGuard = validateRequestTransition(request, tasks, request.currentStatus, "submitted");
   if (request.offerStatus === "approved" && !request.submissionSubmittedAt && !hasActiveTask(tasks, request.id, "submit_offer")) {
     suggestions.push({
       id: `${request.id}:submit-offer`,
       requestId: request.id,
       title: "Создать задачу Кате на подачу КП",
-      reason: "КП согласовано МЛ, но дата подачи ещё не заполнена и активной задачи на подачу нет.",
-      action: "create_submission_task",
-      actionLabel: "Создать задачу на подачу",
+      reason: submitGuard.allowed ? "КП согласовано МЛ, но дата подачи ещё не заполнена и активной задачи на подачу нет." : `Сначала заполните данные для подачи КП: ${submitGuard.errors.join(", ")}.`,
+      action: submitGuard.allowed ? "create_submission_task" : undefined,
+      actionLabel: submitGuard.allowed ? "Создать задачу на подачу" : undefined,
       audience: "u-katya",
       priority: "high"
     });

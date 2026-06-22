@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { getRequestDetailsHref } from "@/lib/request-links";
 import { useMemo, useState, type DragEvent } from "react";
+import type { TransitionRequestResult } from "@/lib/client-store";
 import type { Request, RequestStatus, RequestTask } from "@/lib/types";
 import { canTransitionRequest, isRequestProblem, statusLabels } from "@/lib/workflow";
 import { formatDateTime, formatMoney, getUserName, isPast } from "@/lib/utils";
@@ -34,7 +35,7 @@ export function RequestKanban({
 }: {
   requests: Request[];
   tasks: RequestTask[];
-  transitionRequest: (requestId: string, toStatus: RequestStatus, actorUserId: string, comment?: string) => void;
+  transitionRequest: (requestId: string, toStatus: RequestStatus, actorUserId: string, comment?: string) => TransitionRequestResult;
   actorUserId: string;
 }) {
   const [draggedRequestId, setDraggedRequestId] = useState<string | null>(null);
@@ -84,8 +85,12 @@ export function RequestKanban({
       return;
     }
 
-    transitionRequest(request.id, column.targetStatus, actorUserId, `Перемещено на канбане в колонку «${column.title}»`);
-    setMessage(null);
+    const result = transitionRequest(request.id, column.targetStatus, actorUserId, `Перемещено на канбане в колонку «${column.title}»`);
+    if (!result.allowed) {
+      setMessage(`Нельзя перейти на этот этап: заполните обязательные данные. Не хватает: ${result.errors.join(", ")}`);
+      return;
+    }
+    setMessage(result.warnings.length > 0 ? `Переход выполнен. Рекомендуется заполнить: ${result.warnings.join(", ")}` : null);
   }
 
   return (
