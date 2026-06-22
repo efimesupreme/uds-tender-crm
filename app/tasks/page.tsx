@@ -1,8 +1,11 @@
+"use client";
+
 import { TaskList } from "@/components/TaskList";
-import { tasks } from "@/lib/mock-data";
+import { useCrmStore } from "@/lib/client-store";
 import { isTaskOverdue } from "@/lib/workflow";
 
 export default function TasksPage() {
+  const { tasks } = useCrmStore();
   const overdueTasks = tasks.filter((task) => isTaskOverdue(task));
   const todayTasks = tasks.filter((task) => task.status !== "completed" && task.status !== "accepted" && task.status !== "canceled");
 
@@ -11,7 +14,7 @@ export default function TasksPage() {
       <header className="pageHeader">
         <div>
           <h1>Мои задачи</h1>
-          <p>Рабочий список задач по заявкам. В MVP пока показаны общие моковые данные.</p>
+          <p>Рабочий список задач по заявкам. Данные берутся из клиентского demo-store.</p>
         </div>
       </header>
 
