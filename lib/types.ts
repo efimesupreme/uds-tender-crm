@@ -1,3 +1,5 @@
+import type { TaskType } from "./workflow";
+
 export type UserRole = "admin" | "user";
 
 export type User = {
@@ -71,7 +73,7 @@ export type RequestTask = {
   id: string;
   requestId: string;
   title: string;
-  taskType: string;
+  taskType: TaskType;
   status: TaskStatus;
   createdBy: string;
   assigneeUserId?: string;

@@ -1,4 +1,5 @@
-import { directories, externalParticipants, statusLabels } from "@/lib/mock-data";
+import { directories, externalParticipants } from "@/lib/mock-data";
+import { lossReasons, nonParticipationReasons, statusLabels, taskTypeLabels } from "@/lib/workflow";
 
 export default function DirectoriesPage() {
   const directoryGroups = directories.reduce<Record<string, typeof directories>>((acc, item) => {
@@ -24,6 +25,42 @@ export default function DirectoriesPage() {
               <div className="field" key={code}>
                 <span>{code}</span>
                 <strong>{name}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card">
+          <h2>Типы задач</h2>
+          <div className="detailGrid">
+            {Object.entries(taskTypeLabels).map(([code, name]) => (
+              <div className="field" key={code}>
+                <span>{code}</span>
+                <strong>{name}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card">
+          <h2>Причины неучастия</h2>
+          <div className="detailGrid">
+            {nonParticipationReasons.map((reason) => (
+              <div className="field" key={reason.code}>
+                <span>{reason.code}</span>
+                <strong>{reason.name}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card">
+          <h2>Причины проигрыша</h2>
+          <div className="detailGrid">
+            {lossReasons.map((reason) => (
+              <div className="field" key={reason.code}>
+                <span>{reason.code}</span>
+                <strong>{reason.name}</strong>
               </div>
             ))}
           </div>

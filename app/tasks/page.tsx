@@ -1,9 +1,9 @@
 import { TaskList } from "@/components/TaskList";
 import { tasks } from "@/lib/mock-data";
-import { isTaskOverdue } from "@/lib/utils";
+import { isTaskOverdue } from "@/lib/workflow";
 
 export default function TasksPage() {
-  const overdueTasks = tasks.filter(isTaskOverdue);
+  const overdueTasks = tasks.filter((task) => isTaskOverdue(task));
   const todayTasks = tasks.filter((task) => task.status !== "completed" && task.status !== "accepted" && task.status !== "canceled");
 
   return (

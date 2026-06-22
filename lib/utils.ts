@@ -1,5 +1,6 @@
-import { externalParticipants, statusLabels, users } from "./mock-data";
-import type { Request, RequestStatus, RequestTask } from "./types";
+import { externalParticipants, users } from "./mock-data";
+import type { RequestStatus, RequestTask } from "./types";
+import { isRequestProblem as isWorkflowRequestProblem, isTaskOverdue as isWorkflowTaskOverdue, statusLabels } from "./workflow";
 
 export function formatMoney(value?: number): string {
   if (value === undefined) return "—";
@@ -49,14 +50,9 @@ export function isPast(value?: string): boolean {
   return new Date(value).getTime() < Date.now();
 }
 
-export function isTaskOverdue(task: RequestTask): boolean {
-  return Boolean(task.plannedDueAt && !["completed", "accepted", "canceled"].includes(task.status) && isPast(task.plannedDueAt));
-}
+export const isTaskOverdue = isWorkflowTaskOverdue;
 
-export function isRequestProblem(request: Request, tasks: RequestTask[]): boolean {
-  const requestTasks = tasks.filter((task) => task.requestId === request.id);
-  return !request.nextActionText || isPast(request.nextActionDueAt) || requestTasks.some(isTaskOverdue);
-}
+export const isRequestProblem = isWorkflowRequestProblem;
 
 export function getStatusLabel(status: RequestStatus): string {
   return statusLabels[status];
