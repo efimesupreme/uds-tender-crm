@@ -15,7 +15,7 @@ insert into directory_items (directory_type, code, name, sort_order) values
 ('request_status', 'ready_to_submit', 'КП готово к подаче', 120),
 ('request_status', 'submitted', 'КП подано / предложение направлено', 130),
 ('request_status', 'feedback_waiting', 'Ожидание обратной связи', 140),
-('request_status', 'won', 'Победили', 150),
+('request_status', 'won', 'Договор', 150),
 ('request_status', 'lost', 'Проиграли', 160),
 ('request_status', 'withdrawn_after_start', 'Отказались после запуска подготовки', 170),
 ('request_status', 'missed_deadline', 'Не успели податься', 180),

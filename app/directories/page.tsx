@@ -3,9 +3,10 @@
 import { useCrmStore } from "@/lib/client-store";
 import { directories, externalParticipants } from "@/lib/mock-data";
 import { lossReasons, nonParticipationReasons, statusLabels, taskTypeLabels } from "@/lib/workflow";
+import { PLAN_YEARS, QUARTERS } from "@/lib/dashboard-metrics";
 
 export default function DirectoriesPage() {
-  const { resetDemoData } = useCrmStore();
+  const { resetDemoData, kpOfferPlans, updateKpOfferPlan } = useCrmStore();
   const directoryGroups = directories.reduce<Record<string, typeof directories>>((acc, item) => {
     acc[item.directoryType] = acc[item.directoryType] ?? [];
     acc[item.directoryType].push(item);
@@ -23,6 +24,38 @@ export default function DirectoriesPage() {
       </header>
 
       <section className="sectionStack">
+
+        <div className="card">
+          <div className="sectionHeader">
+            <div>
+              <h2>Планы КП</h2>
+              <p>Плановые суммы выданных КП по кварталам. Значения сохраняются в localStorage.</p>
+            </div>
+          </div>
+          <div className="planSettingsGrid">
+            {PLAN_YEARS.map((year) => (
+              <div className="field planYearCard" key={year}>
+                <strong>{year}</strong>
+                <div className="quarterInputs">
+                  {QUARTERS.map((quarter) => (
+                    <label className="formField" key={`${year}-${quarter}`}>
+                      План КП {quarter}
+                      <input
+                        className="input"
+                        type="number"
+                        min="0"
+                        step="10000"
+                        value={kpOfferPlans[String(year)]?.[quarter] ?? 0}
+                        onChange={(event) => updateKpOfferPlan(year, quarter, Number(event.target.value))}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="card">
           <h2>Статусы заявки</h2>
           <div className="detailGrid">
