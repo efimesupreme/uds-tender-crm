@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useCrmStore } from "@/lib/client-store";
-import { users } from "@/lib/mock-data";
 import { formatMoney } from "@/lib/utils";
 import { isActiveRequest } from "@/lib/workflow";
 import type { RequestStatus, WorkType } from "@/lib/types";
@@ -26,10 +25,9 @@ export default function DashboardPage() {
   const [year, setYear] = useState<number>(2026);
   const [quarter, setQuarter] = useState<Quarter>("all");
   const [workType, setWorkType] = useState<WorkType | "all">("all");
-  const [ownerUserId, setOwnerUserId] = useState<string | "all">("all");
 
   const dashboard = useMemo(() => {
-    const filtered = requests.filter((request) => matchesDashboardFilters(request, { year, quarter, workType, ownerUserId }));
+    const filtered = requests.filter((request) => matchesDashboardFilters(request, { year, quarter, workType, ownerUserId: "all" }));
     const kpRequests = filtered.filter(isKpContourRequest);
     const offerSum = kpRequests.reduce((sum, request) => sum + (request.offerAmount ?? 0), 0);
     const contractCount = kpRequests.filter((request) => request.currentStatus === "won").length;
@@ -69,7 +67,7 @@ export default function DashboardPage() {
         return { type, count: typeRequests.length, amount, percent: offerSum > 0 ? Math.round((amount / offerSum) * 100) : 0 };
       })
     };
-  }, [kpOfferPlans, ownerUserId, quarter, requests, statusHistory, workType, year]);
+  }, [kpOfferPlans, quarter, requests, statusHistory, workType, year]);
 
   if (!isHydrated) return <div className="card" role="status">Загрузка демо-данных…</div>;
 
@@ -88,7 +86,6 @@ export default function DashboardPage() {
         <label className="formField">Год<select className="select" value={year} onChange={(event) => setYear(Number(event.target.value))}>{PLAN_YEARS.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
         <label className="formField">Квартал<select className="select" value={quarter} onChange={(event) => setQuarter(event.target.value as Quarter)}><option value="all">Все кварталы</option>{QUARTERS.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
         <label className="formField">Направление / тип работ<select className="select" value={workType} onChange={(event) => setWorkType(event.target.value as WorkType | "all")}><option value="all">Все типы</option>{workTypeOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-        <label className="formField">Ответственный<select className="select" value={ownerUserId} onChange={(event) => setOwnerUserId(event.target.value)}><option value="all">Все</option>{users.map((user) => <option key={user.id} value={user.id}>{user.fullName}</option>)}</select></label>
       </section>
 
       <section className="cardGrid dashboardKpis">
@@ -99,8 +96,9 @@ export default function DashboardPage() {
         <div className="card statCard"><div className="metric">{HISTORICAL_CONTRACT_CONVERSION}%</div><div className="metricLabel">Историческая конверсия · исторический ориентир</div></div>
       </section>
 
-      <section className="card">
-        <div className="sectionHeader"><div><h2>План / факт по сумме КП</h2><p>Факт КП привязан к дате подготовки КП, затем к дате подачи, затем к дате создания заявки.</p></div></div>
+      <section className="gridTwo dashboardAnalytics">
+        <div className="card planFactCard">
+          <div className="sectionHeader"><div><h2>План / факт по сумме КП</h2><p>Факт КП привязан к дате подготовки КП, затем к дате подачи, затем к дате создания заявки.</p></div></div>
         <div className="planFactGrid">
           {dashboard.planFact.map((item) => (
             <div className="planFactItem" key={item.quarter}>
@@ -115,29 +113,35 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
-      </section>
+        </div>
 
-      <section className="gridTwo dashboardCharts">
-        <div className="card">
+        <div className="card funnelCard">
           <div className="sectionHeader"><div><h2>Воронка продаж</h2><p>Средние сроки этапов встроены в ступени воронки.</p></div></div>
-          <div className="funnelList">
+          <div className="funnelDiagram">
             {dashboard.funnel.map((stage) => (
-              <div className="funnelRow" key={stage.id}>
-                <div className="funnelMeta"><strong>{stage.title}</strong><span>{stage.count} заявок · {stage.percent}% от входящих · срок {stage.averageDuration.text}</span></div>
-                <div className="funnelTrack"><span className="funnelBar" style={{ width: `${stage.width}%` }} /></div>
-                <div className="small muted">{getStatusListText(stage.statuses)}</div>
+              <div className="funnelStep" key={stage.id} style={{ width: `${stage.width}%` }}>
+                <div className="funnelStepMain"><strong>{stage.title}</strong><span>{stage.count} заявок · {stage.percent}%</span></div>
+                <div className="funnelStepMeta">срок {stage.averageDuration.text} · {getStatusListText(stage.statuses)}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="card">
-          <div className="sectionHeader"><div><h2>Структура портфеля</h2><p>КП-контур по типам работ и сумме КП.</p></div><strong>{formatMoney(dashboard.offerSum)}</strong></div>
-          <div className="portfolioList">
+      </section>
+
+      <section className="card portfolioCard">
+        <div className="sectionHeader"><div><h2>Структура портфеля</h2><p>КП-контур по типам работ и сумме КП.</p></div></div>
+        <div className="portfolioDashboard">
+          <div className="portfolioDonut" aria-label={`Общая сумма КП ${formatMoney(dashboard.offerSum)}`}>
+            <div><span>Сумма КП</span><strong>{formatMoney(dashboard.offerSum)}</strong></div>
+          </div>
+          <div className="portfolioLegend">
             {dashboard.portfolio.map((item) => (
-              <div className="portfolioRow" key={item.type}>
-                <div className="portfolioTop"><strong>{item.type}</strong><span>{item.count} КП · {formatMoney(item.amount)} · {item.percent}%</span></div>
-                <div className="portfolioTrack"><span style={{ width: `${item.percent}%` }} /></div>
+              <div className="portfolioLegendRow" key={item.type}>
+                <span className="portfolioDot" />
+                <strong>{item.type}</strong>
+                <span>{item.count} КП</span>
+                <b>{item.percent}% денег</b>
               </div>
             ))}
           </div>
