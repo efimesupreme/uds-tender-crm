@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { TaskList } from "@/components/TaskList";
 import { useCrmStore } from "@/lib/client-store";
 import type { RequestTask, TaskStatus } from "@/lib/types";
-import { formatDateTime, getAssigneeName } from "@/lib/utils";
+import { getUserName } from "@/lib/utils";
 import { taskTypeLabels } from "@/lib/workflow";
-import { isMyTask, isMyZoneRequest, DENIS_USER_ID } from "@/lib/user-workspace";
+import { isMyTask } from "@/lib/user-workspace";
 
 const statusFilters: Array<{ id: TaskStatus; label: string }> = [
   { id: "new", label: "Новые" },
@@ -15,16 +15,12 @@ const statusFilters: Array<{ id: TaskStatus; label: string }> = [
 ];
 
 export default function TasksPage() {
-  const { requests, tasks, currentUserId, updateTaskAssignee, completeTaskWithEffects } = useCrmStore();
+  const { requests, tasks, currentUserId, updateTaskAssignee, updateTaskExecutor, startTask, returnTaskToWork, completeTaskWithEffects } = useCrmStore();
   const [activeStatuses, setActiveStatuses] = useState<TaskStatus[]>([]);
   const [confirmTask, setConfirmTask] = useState<RequestTask | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const myTasks = tasks.filter((task) => isMyTask(task, currentUserId));
-  const denisProblemTasks = currentUserId === DENIS_USER_ID
-    ? requests.filter((request) => isMyZoneRequest(request, tasks, currentUserId)).map((request) => ({ id: `focus-${request.id}`, requestId: request.id, title: `Управленческое действие: ${request.title}`, taskType: "record_result" as const, status: "new" as const, createdBy: "u-denis", assigneeUserId: "u-denis", plannedDueAt: request.nextActionDueAt ?? request.submissionDeadlineAt, returnedCount: 0, comment: request.nextActionText ?? "Проверьте проблему по заявке" }))
-    : [];
-  const visibleTasks = [...myTasks, ...denisProblemTasks];
+  const visibleTasks = tasks.filter((task) => isMyTask(task, currentUserId));
   const filteredTasks = activeStatuses.length === 0 ? visibleTasks : visibleTasks.filter((task) => activeStatuses.includes(task.status));
   const groups = useMemo(() => ({
     new: filteredTasks.filter((task) => task.status === "new"),
@@ -48,12 +44,6 @@ export default function TasksPage() {
     <>
       <header className="pageHeader"><div><h1>Мои задачи</h1><p>Рабочий список задач по заявкам. Данные берутся из клиентского demo-store.</p></div></header>
       {message && <div className="alert" role="alert">{message}</div>}
-      <section className="cardGrid">
-        <div className="card statCard"><div className="metric">{counts.new}</div><div className="metricLabel">новые</div></div>
-        <div className="card statCard"><div className="metric">{counts.in_progress}</div><div className="metricLabel">в работе</div></div>
-        <div className="card statCard"><div className="metric">{counts.completed}</div><div className="metricLabel">выполнено</div></div>
-        <div className="card statCard"><div className="metric">{visibleTasks.length}</div><div className="metricLabel">всего в зоне</div></div>
-      </section>
       <div className="tableControls"><div className="quickFilterChips" aria-label="Фильтры задач по статусу">
         {statusFilters.map((filter) => {
           const isActive = activeStatuses.includes(filter.id);
@@ -61,13 +51,13 @@ export default function TasksPage() {
         })}
       </div></div>
       <section className="sectionStack">
-        <div className="card"><h2>Новые</h2><TaskList tasks={groups.new} actions={{ actorUserId: currentUserId, requests, updateTaskAssignee, onCompleteClick: setConfirmTask }} /></div>
-        <div className="card"><h2>В работе</h2><TaskList tasks={groups.in_progress} actions={{ actorUserId: currentUserId, requests, updateTaskAssignee, onCompleteClick: setConfirmTask }} /></div>
-        {(activeStatuses.includes("completed") || activeStatuses.length === 0) && <div className="card"><h2>Выполнено</h2><TaskList tasks={groups.completed} actions={{ actorUserId: currentUserId, requests, updateTaskAssignee, onCompleteClick: setConfirmTask }} /></div>}
+        <div className="card"><h2>Новые</h2><TaskList tasks={groups.new} actions={{ actorUserId: currentUserId, requests, updateTaskAssignee, updateTaskExecutor, startTask, returnTaskToWork, onCompleteClick: setConfirmTask }} /></div>
+        <div className="card"><h2>В работе</h2><TaskList tasks={groups.in_progress} actions={{ actorUserId: currentUserId, requests, updateTaskAssignee, updateTaskExecutor, startTask, returnTaskToWork, onCompleteClick: setConfirmTask }} /></div>
+        {(activeStatuses.includes("completed") || activeStatuses.length === 0) && <div className="card"><h2>Выполнено</h2><TaskList tasks={groups.completed} actions={{ actorUserId: currentUserId, requests, updateTaskAssignee, updateTaskExecutor, startTask, returnTaskToWork, onCompleteClick: setConfirmTask }} /></div>}
       </section>
       {confirmTask && <div className="modalBackdrop" role="presentation"><section className="modalCard" role="dialog" aria-modal="true" aria-labelledby="complete-task-title">
         <h2 id="complete-task-title">Подтвердите исполнение</h2>
-        <div className="detailGrid"><div className="field"><span>Задача</span><strong>{confirmTask.title}</strong></div><div className="field"><span>Заявка</span><strong>{request?.internalNumber ?? confirmTask.requestId}: {request?.title}</strong></div><div className="field"><span>Статус</span><strong>{confirmTask.status}</strong></div><div className="field"><span>Ответственный</span><strong>{getAssigneeName(confirmTask)}</strong></div><div className="field"><span>Создана</span><strong>{formatDateTime(confirmTask.createdAt)}</strong></div><div className="field"><span>Процесс</span><strong>{taskTypeLabels[confirmTask.taskType]} может запустить следующий шаг или показать предупреждение.</strong></div></div>
+        <div className="detailGrid"><div className="field"><span>ID заявки</span><strong>{request?.internalNumber ?? confirmTask.requestId}</strong></div><div className="field"><span>Название заявки</span><strong>{request?.title ?? "—"}</strong></div><div className="field"><span>Задача</span><strong>{confirmTask.title}</strong></div><div className="field"><span>Ответственный</span><strong>{getUserName(confirmTask.assigneeUserId)}</strong></div>{confirmTask.executorName && <div className="field"><span>Исполнитель</span><strong>{confirmTask.executorName}</strong></div>}<div className="field"><span>Процесс</span><strong>{taskTypeLabels[confirmTask.taskType]} может запустить следующий шаг или показать предупреждение.</strong></div></div>
         <div className="inlineAlert warning" role="alert">После подтверждения задача станет выполненной; связанные действия будут созданы без дублей.</div>
         <div className="formActions"><button className="button" type="button" onClick={confirmComplete}>Подтвердить</button><button className="button buttonSecondary" type="button" onClick={() => setConfirmTask(null)}>Отмена</button></div>
       </section></div>}

@@ -92,7 +92,7 @@ export function getAutomationSuggestions(request: Request, tasks: RequestTask[],
     });
   }
 
-  if (request.submissionSubmittedAt && !request.nextActionDueAt && !hasActiveTask(tasks, request.id, "request_feedback")) {
+  if (request.submissionSubmittedAt && !request.nextActionDueAt && !hasActiveTask(tasks, request.id, "other")) {
     suggestions.push({
       id: `${request.id}:plan-feedback`,
       requestId: request.id,
@@ -105,7 +105,7 @@ export function getAutomationSuggestions(request: Request, tasks: RequestTask[],
     });
   }
 
-  if (request.submissionSubmittedAt && request.nextActionDueAt && new Date(request.nextActionDueAt).getTime() < now.getTime() && !hasActiveTask(tasks, request.id, "request_feedback")) {
+  if (request.submissionSubmittedAt && request.nextActionDueAt && new Date(request.nextActionDueAt).getTime() < now.getTime() && !hasActiveTask(tasks, request.id, "other")) {
     suggestions.push({
       id: `${request.id}:overdue-feedback`,
       requestId: request.id,

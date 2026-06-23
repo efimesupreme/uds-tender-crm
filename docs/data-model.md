@@ -278,7 +278,7 @@
 - базовые данные: `title`, `customerName`, `workType`, `sourceType`, `ownerUserId`, `submissionDeadlineAt`;
 - решение об участии: `participationDecision`, `participationDecisionReceivedAt`, `participationDecisionComment`;
 - обращение и папка: `appealNumber`, `workingFolderUrl`;
-- задачи запуска работ: задачи типов `prepare_costs`, `contract_review`, `collect_documents`;
+- задачи запуска работ: задачи типов `approve_costs`, `contract_review`, `collect_documents`;
 - затраты: `costsStatus`, `costAmount`, `costsRiskComment`, `plannedMarginPercent`;
 - КП: `offerStatus`, `offerAmount`, `offerPreparedAt`, `offerComment`, `offerMlApprovedAt`;
 - документы и подача: `documentsStatus`, `submissionMethod`, `submissionSubmittedBy`, `submissionSubmittedAt`;
@@ -291,3 +291,9 @@
 У задач используется единая модель статусов: `new` («Новая»), `in_progress` («В работе»), `completed` («Выполнено»). Поле `assigneeUserId` хранит ответственного пользователя; для демо-процесса допустимы Денис (`u-denis`, Тагиев) и Катя (`u-katya`, Безрукова`). Ответственный по умолчанию вычисляется по типу задачи, но может быть изменён вручную через select; изменение сохраняется в `localStorage` и пишет событие `task_assignee_changed`.
 
 Для факта выполнения используются `startedAt`, `completedAt` и `actualDurationMinutes`. Если задача была начата, длительность считается от `startedAt`; иначе — от `createdAt`, а при отсутствии даты остаётся `null`, чтобы метрики не ломались.
+
+## Уточнение модели задач
+
+В задачах используются только статусы `new` («Новая»), `in_progress` («В работе») и `completed` («Выполнено»). `responsibleUserId` в интерфейсе соответствует системному ответственному задачи и хранится в текущей клиентской модели как `assigneeUserId`; допустимые пользователи — Денис/Тагиев (`u-denis`) и Катя/Безрукова (`u-katya`). Для фактического исполнителя добавлено свободное текстовое поле `executorName`: это не справочник и не select, пользователь вручную вводит любое имя или роль, а изменение пишет событие `task_executor_changed`.
+
+Технические поля сроков и метрик (`startedAt`, `completedAt`, `actualDurationMinutes`, счётчики возвратов) могут продолжать храниться и использоваться для аналитики и журнала. В основном списке «Мои задачи» они не выводятся как отдельные колонки «Факт», «Длительность», «Просрочка» или «Возвраты».

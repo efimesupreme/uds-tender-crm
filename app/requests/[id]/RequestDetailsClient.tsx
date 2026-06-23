@@ -69,8 +69,10 @@ export default function RequestDetailsClient({
     transitionRequest,
     closeRequest,
     startTask,
+    returnTaskToWork,
     completeTaskWithEffects,
     updateTaskAssignee,
+    updateTaskExecutor,
     updateAppealAndFolder,
     updateNextAction,
     updateParticipationBlock,
@@ -1680,6 +1682,9 @@ export default function RequestDetailsClient({
               actorUserId: currentUserId,
               requests,
               updateTaskAssignee,
+              updateTaskExecutor,
+              startTask,
+              returnTaskToWork,
               onCompleteClick: (task) => completeTaskWithEffects(task.id, currentUserId),
             }}
           />

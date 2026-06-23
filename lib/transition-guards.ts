@@ -6,7 +6,7 @@ export type TransitionValidationResult = { allowed: boolean; errors: string[]; w
 
 const hasText = (value?: string) => Boolean(value?.trim());
 const hasPositiveNumber = (value?: number) => typeof value === "number" && Number.isFinite(value) && value > 0;
-const taskTypesForMaterials: TaskType[] = ["prepare_costs", "contract_review", "collect_documents"];
+const taskTypesForMaterials: TaskType[] = ["approve_costs", "contract_review", "collect_documents"];
 const activeTaskStatuses = new Set(["new", "in_progress"]);
 
 function hasTask(tasks: RequestTask[], requestId: string, type: TaskType) {

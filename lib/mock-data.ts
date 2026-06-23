@@ -312,14 +312,14 @@ export const requests: Request[] = [
 ];
 
 export const tasks: RequestTask[] = [
-  { id: "t-007-1", requestId: "r-007", title: "Подготовить затраты", taskType: "prepare_costs", status: "new", createdBy: "u-denis", assigneeUserId: "u-denis", createdAt: "2026-06-22T09:35:00+03:00", returnedCount: 0 },
+  { id: "t-007-1", requestId: "r-007", title: "Утвердить затраты", taskType: "approve_costs", status: "new", createdBy: "u-denis", assigneeUserId: "u-denis", createdAt: "2026-06-22T09:35:00+03:00", returnedCount: 0 },
   { id: "t-007-2", requestId: "r-007", title: "Проанализировать договор", taskType: "contract_review", status: "new", createdBy: "u-denis", assigneeUserId: "u-denis", createdAt: "2026-06-22T09:36:00+03:00", returnedCount: 0 },
   { id: "t-007-3", requestId: "r-007", title: "Собрать комплект документов", taskType: "collect_documents", status: "new", createdBy: "u-denis", assigneeUserId: "u-katya", createdAt: "2026-06-22T09:37:00+03:00", returnedCount: 0 },
   {
     id: "t-001",
     requestId: "r-001",
-    title: "Подготовить затраты",
-    taskType: "prepare_costs",
+    title: "Утвердить затраты",
+    taskType: "approve_costs",
     status: "completed",
     createdBy: "u-denis",
     assigneeUserId: "u-denis",
@@ -369,8 +369,8 @@ export const tasks: RequestTask[] = [
   {
     id: "t-005",
     requestId: "r-005",
-    title: "Согласовать протокол с ГД",
-    taskType: "approve_protocol_gd",
+    title: "Подготовить протокол разногласий",
+    taskType: "prepare_protocol",
     status: "completed",
     createdBy: "u-denis",
     assigneeUserId: "u-denis",
