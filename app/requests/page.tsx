@@ -182,7 +182,7 @@ function RequestsPageContent() {
     setForm({ ...emptyForm, ownerUserId: currentUserId });
     setSubmitted(false);
     setCreateOpen(false);
-    setMessage("Заявка создана");
+    setMessage("Заявка создана, задача на согласование участия с ГД запущена");
     router.push(getRequestDetailsHref(created.id));
   }
 
