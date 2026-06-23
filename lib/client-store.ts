@@ -251,12 +251,40 @@ export function useCrmStore() {
       createdAt
     };
 
-    updateState((current) => ({
-      ...current,
-      requests: [newRequest, ...current.requests],
-      statusHistory: [createStatusHistoryItem({ requestId, toStatus: "new", changedBy: actorUserId }, createdAt), ...current.statusHistory],
-      events: [createEvent({ requestId, eventType: "request_created", actorUserId, comment: "Заявка создана" }, createdAt), ...current.events]
-    }));
+    updateState((current) => {
+      const initialTaskExists = current.tasks.some(
+        (task) => task.requestId === requestId && task.taskType === "participation_decision",
+      );
+      const initialTask: RequestTask | undefined = initialTaskExists
+        ? undefined
+        : {
+          id: generateTaskId(),
+          requestId,
+          title: taskTypeLabels.participation_decision,
+          taskType: "participation_decision",
+          status: "new",
+          createdBy: actorUserId,
+          assigneeUserId: "u-denis",
+          createdAt,
+          returnedCount: 0,
+          comment: "Первый шаг workflow после создания заявки",
+        };
+
+      return {
+        ...current,
+        requests: [newRequest, ...current.requests],
+        tasks: initialTask ? [initialTask, ...current.tasks] : current.tasks,
+        statusHistory: [createStatusHistoryItem({ requestId, toStatus: "new", changedBy: actorUserId }, createdAt), ...current.statusHistory],
+        events: [
+          ...(initialTask ? [
+            createEvent({ requestId, taskId: initialTask.id, eventType: "task_created", actorUserId, comment: `Создана задача «${initialTask.title}»` }, createdAt),
+            createEvent({ requestId, taskId: initialTask.id, eventType: "workflow_started", actorUserId, comment: "Workflow запущен" }, createdAt),
+          ] : []),
+          createEvent({ requestId, eventType: "request_created", actorUserId, comment: "Заявка создана" }, createdAt),
+          ...current.events
+        ]
+      };
+    });
     return newRequest;
   }, []);
 

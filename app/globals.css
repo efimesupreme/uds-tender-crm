@@ -298,7 +298,8 @@ textarea.input { min-height: 92px; resize: vertical; }
 }
 
 .appShell { align-items: stretch; background: linear-gradient(90deg, #102033 0 var(--sidebar-width), var(--color-bg) var(--sidebar-width)); }
-.sidebar { position: sticky; top: 0; z-index: 15; height: 100vh; padding: 16px 10px; }
+.sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 25; width: var(--sidebar-width); height: 100vh; padding: 16px 10px; overflow-y: auto; }
+.main { grid-column: 2; }
 .brand { display: grid; gap: 8px; margin-bottom: 18px; padding: 4px; }
 .brandMark { width: 34px; height: 34px; border-radius: 10px; }
 .brand strong { font-size: 12px; line-height: 1.15; }
@@ -359,6 +360,8 @@ textarea.input { min-height: 92px; resize: vertical; }
 
 @media (max-width: 767px) {
   .appShell { background: var(--color-bg); }
+  .sidebar { display: none; }
+  .main { grid-column: auto; }
   .main { padding-top: calc(var(--topbar-height) + 12px); }
   .appTopBar { left: 0; min-height: var(--topbar-height); padding: 7px 12px; gap: 8px; }
   .appTopBarTitle { font-size: 16px; }
