@@ -140,7 +140,7 @@ function RequestsPageContent() {
             Новая заявка
           </button>
           <button
-            className="button buttonSecondary"
+            className="button buttonDanger"
             type="button"
             onClick={resetDemo}
           >
@@ -351,7 +351,7 @@ function RequestsPageContent() {
         </section>
       )}
 
-      <div className="filterBar">
+      <div className="toolbar">
         <label className="formField" htmlFor="request-search">
           Поиск
           <input

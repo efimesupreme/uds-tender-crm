@@ -13,7 +13,8 @@ export default function TasksPage() {
     : [];
   const visibleTasks = [...myTasks, ...denisProblemTasks];
   const overdueTasks = visibleTasks.filter((task) => isTaskOverdue(task));
-  const todayTasks = visibleTasks.filter((task) => task.status !== "completed" && task.status !== "accepted" && task.status !== "canceled");
+  const pendingAcceptanceTasks = visibleTasks.filter((task) => task.status === "completed");
+  const todayTasks = visibleTasks.filter((task) => task.status !== "completed" && task.status !== "accepted" && task.status !== "canceled" && !isTaskOverdue(task));
 
   return (
     <>
@@ -24,6 +25,13 @@ export default function TasksPage() {
         </div>
       </header>
 
+      <section className="cardGrid">
+        <div className="card statCard"><div className="metric">{overdueTasks.length}</div><div className="metricLabel">просрочено</div></div>
+        <div className="card statCard"><div className="metric">{todayTasks.length}</div><div className="metricLabel">активные</div></div>
+        <div className="card statCard"><div className="metric">{pendingAcceptanceTasks.length}</div><div className="metricLabel">ожидают принятия</div></div>
+        <div className="card statCard"><div className="metric">{visibleTasks.length}</div><div className="metricLabel">всего в зоне</div></div>
+      </section>
+
       <section className="sectionStack">
         <div className="card">
           <h2>Просроченные</h2>
@@ -33,6 +41,11 @@ export default function TasksPage() {
         <div className="card">
           <h2>Активные</h2>
           <TaskList tasks={todayTasks} />
+        </div>
+
+        <div className="card">
+          <h2>Ожидают принятия</h2>
+          <TaskList tasks={pendingAcceptanceTasks} />
         </div>
       </section>
     </>

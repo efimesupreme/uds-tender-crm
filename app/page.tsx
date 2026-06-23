@@ -48,26 +48,26 @@ export default function DashboardPage() {
       </header>
 
       <section className="cardGrid">
-        <div className="card">
+        <div className="card statCard">
           <div className="metric">{activeRequests.length}</div>
           <div className="metricLabel">активных заявок</div>
         </div>
-        <div className="card">
+        <div className="card statCard">
           <div className="metric">{overdueTasks.length}</div>
           <div className="metricLabel">просроченных задач</div>
         </div>
-        <div className="card">
+        <div className="card statCard">
           <div className="metric">{problemRequests.length}</div>
           <div className="metricLabel">проблемных заявок</div>
         </div>
-        <div className="card">
+        <div className="card statCard">
           <div className="metric">{formatMoney(activeOfferSum)}</div>
           <div className="metricLabel">активная сумма КП</div>
         </div>
       </section>
 
       <section className="card">
-        <h2>Рабочий фокус</h2>
+        <div className="sectionHeader"><div><h2>Рабочий фокус</h2><p>Главные операционные сигналы для текущего пользователя.</p></div></div>
         <div className="detailGrid">
           {isDenis ? (
             <>
@@ -91,12 +91,12 @@ export default function DashboardPage() {
       </section>
 
       <section className="card">
-        <h2>Предлагаемые действия</h2>
+        <div className="sectionHeader"><div><h2>Предлагаемые действия</h2><p>Автоматические подсказки по заявкам и задачам.</p></div></div>
         <AutomationSuggestions suggestions={automationSuggestions} requests={requests} onApply={(suggestionId) => applyAutomationSuggestion(suggestionId, currentUserId)} />
       </section>
 
       <section className="card">
-        <h2>Статистика закрытия</h2>
+        <div className="sectionHeader"><div><h2>Статистика закрытия</h2><p>Итоги завершённых заявок в demo-store.</p></div></div>
         <div className="detailGrid">
           <div className="field"><span>Победили</span><strong>{closedStats.won}</strong></div>
           <div className="field"><span>Проиграли</span><strong>{closedStats.lost}</strong></div>

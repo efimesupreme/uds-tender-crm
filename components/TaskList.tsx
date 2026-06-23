@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { getRequestDetailsHref } from "@/lib/request-links";
 import type { RequestTask } from "@/lib/types";
 import { getTaskDelay, getTaskDuration } from "@/lib/metrics";
 import { isTaskOverdue } from "@/lib/workflow";
@@ -42,6 +44,7 @@ export function TaskList({ tasks, actions }: { tasks: RequestTask[]; actions?: T
             <tr key={task.id} className={isTaskOverdue(task) ? "problemRow" : undefined}>
               <td>
                 {task.title}
+                <div className="small muted">Заявка: <Link className="tableLink" href={getRequestDetailsHref(task.requestId)}>{task.requestId}</Link></div>
                 {task.comment && <div className="small muted">{task.comment}</div>}
               </td>
               <td>{getAssigneeName(task)}</td>
@@ -53,11 +56,11 @@ export function TaskList({ tasks, actions }: { tasks: RequestTask[]; actions?: T
               <td>{task.returnedCount}</td>
               {actions && (
                 <td>
-                  <div className="filterBar">
+                  <div className="headerActions">
                     <button className="button" type="button" onClick={() => actions.startTask(task.id, actions.actorUserId)}>В работу</button>
                     <button className="button" type="button" onClick={() => actions.completeTask(task.id, actions.actorUserId, "Выполнено")}>Выполнить</button>
-                    <button className="button" type="button" onClick={() => actions.returnTask(task.id, actions.actorUserId, "Возвращено на доработку")}>Вернуть</button>
-                    <button className="button" type="button" onClick={() => actions.acceptTask(task.id, actions.actorUserId)}>Принять</button>
+                    <button className="button buttonSecondary" type="button" onClick={() => actions.returnTask(task.id, actions.actorUserId, "Возвращено на доработку")}>Вернуть</button>
+                    <button className="button buttonSecondary" type="button" onClick={() => actions.acceptTask(task.id, actions.actorUserId)}>Принять</button>
                   </div>
                 </td>
               )}
