@@ -13,25 +13,32 @@ const navItems = [
 export function Nav() {
   const pathname = usePathname();
 
+  const renderLinks = (className: string) => (
+    <nav className={className} aria-label={className === "mobileNav" ? "Мобильная навигация" : "Основная навигация"}>
+      {navItems.map((item) => {
+        const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        return (
+          <Link href={item.href} key={item.href} className={`navLink${isActive ? " active" : ""}`} aria-current={isActive ? "page" : undefined}>
+            {item.label === "Мои задачи" ? "Задачи" : item.label === "Справочники" ? "Ещё" : item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
   return (
-    <aside className="sidebar">
-      <div className="brand">
-        <div className="brandMark">У</div>
-        <div>
-          <strong>UDS Tender CRM</strong>
-          <span>Входящие заявки и тендеры</span>
+    <>
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brandMark">У</div>
+          <div>
+            <strong>UDS Tender CRM</strong>
+            <span>Входящие заявки и тендеры</span>
+          </div>
         </div>
-      </div>
-      <nav className="navList" aria-label="Основная навигация">
-        {navItems.map((item) => {
-          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-          return (
-            <Link href={item.href} key={item.href} className={`navLink${isActive ? " active" : ""}`} aria-current={isActive ? "page" : undefined}>
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-    </aside>
+        {renderLinks("navList")}
+      </aside>
+      {renderLinks("mobileNav")}
+    </>
   );
 }

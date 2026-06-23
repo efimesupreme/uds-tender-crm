@@ -20,8 +20,35 @@ export function TaskList({ tasks, actions }: { tasks: RequestTask[]; actions?: T
   }
 
   return (
-    <div className="tableWrap">
-      <table>
+    <>
+      <div className="taskCardList" aria-label="Список задач">
+        {tasks.map((task) => (
+          <article className={`taskMobileCard${isTaskOverdue(task) ? " problemRow" : ""}`} key={task.id}>
+            <div className="kanbanCardTop">
+              <strong>{task.title}</strong>
+              <TaskStatusBadge status={task.status} />
+            </div>
+            <div className="small muted">Заявка: <Link className="tableLink" href={getRequestDetailsHref(task.requestId)}>{task.requestId}</Link></div>
+            {task.comment && <div className="small muted">{task.comment}</div>}
+            <div className="mobileMetaGrid">
+              <span>Срок: {formatDateTime(task.plannedDueAt)}</span>
+              <span>Исполнитель: {getAssigneeName(task)}</span>
+              <span>Приоритет: {isTaskOverdue(task) ? "просрочено" : "обычный"}</span>
+              <span>Возвраты: {task.returnedCount}</span>
+            </div>
+            {actions && (
+              <div className="headerActions">
+                <button className="button" type="button" onClick={() => actions.startTask(task.id, actions.actorUserId)}>В работу</button>
+                <button className="button" type="button" onClick={() => actions.completeTask(task.id, actions.actorUserId, "Выполнено")}>Выполнить</button>
+                <button className="button buttonSecondary" type="button" onClick={() => actions.returnTask(task.id, actions.actorUserId, "Возвращено на доработку")}>Вернуть</button>
+                <button className="button buttonSecondary" type="button" onClick={() => actions.acceptTask(task.id, actions.actorUserId)}>Принять</button>
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+      <div className="tableWrap taskDesktopTable">
+        <table>
         <thead>
           <tr>
             <th>Задача</th>
@@ -68,7 +95,8 @@ export function TaskList({ tasks, actions }: { tasks: RequestTask[]; actions?: T
             );
           })}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+    </>
   );
 }

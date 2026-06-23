@@ -57,6 +57,7 @@
 * { box-sizing: border-box; }
 html { font-size: var(--font-base); }
 body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+html, body { max-width: 100%; overflow-x: hidden; }
 a { color: inherit; text-decoration: none; }
 a:hover { color: var(--color-accent); }
 button, input, select, textarea { font: inherit; }
@@ -69,6 +70,7 @@ button, input, select, textarea { font: inherit; }
 .brand strong { display: block; letter-spacing: -.02em; }
 .brand span { display: block; margin-top: 3px; color: #aab8c8; font-size: var(--font-small); }
 .navList { display: grid; gap: 6px; }
+.mobileNav { display: none; }
 .navLink { display: flex; align-items: center; min-height: 40px; padding: 10px 12px; border-radius: var(--radius-md); color: #cfdae7; font-weight: 700; }
 .navLink:hover, .navLink.active { background: rgba(255,255,255,.1); color: #fff; }
 .navLink.active { box-shadow: inset 3px 0 0 #8fc2df; }
@@ -99,6 +101,7 @@ button, input, select, textarea { font: inherit; }
 .field strong { overflow-wrap: anywhere; font-size: 14px; }
 
 .tableWrap { overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-sm); }
+.requestCardList { display: none; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: var(--table-cell-y) 14px; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
 th { position: sticky; top: 0; z-index: 1; background: #f3f6fa; color: var(--color-text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: .055em; white-space: nowrap; }
@@ -160,6 +163,8 @@ textarea.input { min-height: 92px; resize: vertical; }
 .kanbanCardDragging { opacity: .55; }
 .kanbanCardTop { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .kanbanCardMeta { display: grid; gap: 4px; color: var(--color-text-muted); font-size: var(--font-small); }
+.kanbanMobileTransition { display: none; }
+.mobileMetaGrid { display: grid; gap: 6px; color: var(--color-text-muted); font-size: var(--font-small); }
 
 .automationList { display: grid; gap: 10px; }
 .automationItem { display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 12px; background: var(--color-surface-secondary); }
@@ -171,4 +176,63 @@ textarea.input { min-height: 92px; resize: vertical; }
 .journalList { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .journalItem { padding: 12px; border-left: 3px solid var(--color-accent); border-radius: var(--radius-md); background: var(--color-surface-secondary); }
 
-@media (max-width: 1100px) { .appShell { grid-template-columns: 1fr; } .sidebar { position: static; height: auto; } .cardGrid, .gridTwo, .detailGrid { grid-template-columns: 1fr; } }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .appShell { grid-template-columns: 220px minmax(0, 1fr); }
+  .sidebar { padding: 20px 12px; }
+  .main { padding: 22px 22px 36px; }
+  .cardGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gridTwo, .detailGrid { grid-template-columns: 1fr; }
+  .kanbanBoard { grid-template-columns: repeat(8, minmax(250px, 72vw)); }
+}
+
+@media (max-width: 767px) {
+  :root { --font-base: 15px; --font-title: 24px; --button-height: 44px; }
+  body { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
+  .appShell { display: block; min-height: 100vh; }
+  .sidebar { display: none; }
+  .mobileNav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--color-border); background: rgba(255,255,255,.96); box-shadow: 0 -8px 24px rgba(16,24,40,.12); }
+  .mobileNav .navLink { min-height: 48px; justify-content: center; padding: 8px 6px; color: var(--color-text-secondary); font-size: 12px; border-radius: var(--radius-md); text-align: center; }
+  .mobileNav .navLink:hover, .mobileNav .navLink.active { background: var(--color-accent-bg); color: var(--color-accent); }
+  .mobileNav .navLink.active { box-shadow: inset 0 -3px 0 var(--color-accent); }
+  .main { max-width: 100%; padding: 14px 12px 24px; }
+  .topBar { position: sticky; top: 0; z-index: 10; justify-content: stretch; margin: -14px -12px 14px; padding: 10px 12px; border-bottom: 1px solid var(--color-border); background: rgba(243,245,248,.96); backdrop-filter: blur(10px); }
+  .topBar .userSwitcher { width: 100%; min-width: 0; }
+  .pageHeader, .sectionHeader { display: grid; gap: 12px; align-items: stretch; }
+  .pageHeader h1 { font-size: var(--font-title); overflow-wrap: anywhere; }
+  .headerActions, .formActions, .toolbar, .filterBar, .viewToggle { display: grid; grid-template-columns: 1fr; align-items: stretch; }
+  .button { width: 100%; min-height: 44px; }
+  .card { padding: 14px; border-radius: var(--radius-lg); }
+  .cardGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .metric { font-size: 26px; }
+  .gridTwo, .detailGrid { grid-template-columns: 1fr; gap: 10px; }
+  .field { padding: 10px; }
+  .input, .select, textarea.input { min-height: 44px; font-size: 16px; }
+  textarea.input { min-height: 120px; }
+  .automationItem { display: grid; gap: 10px; }
+  .requestDesktopTable { display: none; }
+  .requestCardList { display: grid; gap: 10px; }
+  .requestMobileCard { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-sm); }
+  .requestMobileCard.problemRow { border-left: 4px solid var(--color-warning); background: #fffaf0; }
+  .kanbanBoard { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(286px, 86vw); grid-template-columns: none; gap: 10px; margin-inline: -12px; padding: 2px 12px 12px; overflow-x: auto; scroll-snap-type: x mandatory; }
+  .kanbanColumn { min-height: auto; max-height: none; scroll-snap-align: start; }
+  .kanbanCard { cursor: default; }
+  .kanbanMobileTransition { display: grid; gap: 8px; padding-top: 8px; border-top: 1px solid var(--color-border); }
+  .tableWrap { max-width: 100%; }
+  th, td { padding: 10px; }
+  .journalList { max-height: 360px; overflow: auto; }
+}
+
+@media (max-width: 420px) {
+  .main { padding-inline: 10px; }
+  .topBar { margin-inline: -10px; padding-inline: 10px; }
+  .cardGrid { grid-template-columns: 1fr; }
+  .kanbanBoard { grid-auto-columns: minmax(270px, 90vw); margin-inline: -10px; padding-inline: 10px; }
+  .badge { white-space: normal; }
+}
+.taskCardList { display: none; }
+@media (max-width: 767px) {
+  .taskDesktopTable { display: none; }
+  .taskCardList { display: grid; gap: 10px; }
+  .taskMobileCard { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-secondary); }
+  .taskMobileCard.problemRow { border-left: 4px solid var(--color-danger); background: var(--color-danger-bg); }
+}
