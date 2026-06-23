@@ -38,7 +38,7 @@ export const statusLabels: Record<RequestStatus, string> = {
   ready_to_submit: "КП готово к подаче",
   submitted: "КП подано",
   feedback_waiting: "Ожидание обратной связи",
-  won: "Победили",
+  won: "Договор",
   lost: "Проиграли",
   withdrawn_after_start: "Отказались после запуска",
   missed_deadline: "Не успели податься",

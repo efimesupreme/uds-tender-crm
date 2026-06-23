@@ -259,3 +259,32 @@ textarea.input { min-height: 92px; resize: vertical; }
 .taskTable th:nth-child(6) { width: 14%; }
 .taskTable th:nth-child(7) { width: 12%; }
 .taskReturnButton { opacity: 0.72; }
+
+.dashboardFilters { display: grid; grid-template-columns: repeat(4, minmax(170px, 1fr)); }
+.dashboardKpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.planFactGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.planFactItem { display: grid; gap: 8px; min-width: 0; padding: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-secondary); }
+.barPair { display: flex; align-items: end; justify-content: center; gap: 10px; height: 150px; padding: 10px; border-radius: var(--radius-md); background: linear-gradient(180deg, #fff, #eef3f7); }
+.barPair span { display: block; width: 34px; min-height: 4px; border-radius: 10px 10px 3px 3px; }
+.planBar { background: #b8c3d2; }
+.factBar { background: var(--color-accent); }
+.funnelList, .portfolioList { display: grid; gap: 12px; }
+.funnelRow { display: grid; gap: 7px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-secondary); }
+.funnelMeta, .portfolioTop { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.funnelMeta span, .portfolioTop span { color: var(--color-text-muted); font-size: var(--font-small); text-align: right; }
+.funnelTrack, .portfolioTrack { overflow: hidden; height: 18px; border-radius: 999px; background: #e3e9f1; }
+.funnelBar, .portfolioTrack span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #79a7c7, var(--color-accent)); }
+.portfolioTrack { height: 10px; }
+.planSettingsGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.planYearCard { display: grid; gap: 12px; }
+.quarterInputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+
+@media (max-width: 1023px) {
+  .dashboardFilters, .dashboardKpis, .planFactGrid, .planSettingsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .dashboardFilters, .dashboardKpis, .planFactGrid, .planSettingsGrid, .quarterInputs { grid-template-columns: 1fr; }
+  .barPair { height: 110px; }
+  .funnelMeta, .portfolioTop { display: grid; gap: 4px; }
+  .funnelMeta span, .portfolioTop span { text-align: left; }
+}

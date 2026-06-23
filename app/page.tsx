@@ -1,182 +1,145 @@
 "use client";
 
-import Link from "next/link";
-import { getRequestDetailsHref } from "@/lib/request-links";
-import { RequestTable } from "@/components/RequestTable";
-import { AutomationSuggestions } from "@/components/AutomationSuggestions";
-import { TaskList } from "@/components/TaskList";
+import { useMemo, useState } from "react";
 import { useCrmStore } from "@/lib/client-store";
-import { getAverageStageDurations, getProcessBottlenecks } from "@/lib/metrics";
+import { users } from "@/lib/mock-data";
 import { formatMoney } from "@/lib/utils";
-import { isActiveRequest, isRequestProblem, isTaskOverdue } from "@/lib/workflow";
-import { getAutomationSuggestions, getSuggestionsForUser } from "@/lib/process-automation";
-import { ADMIN_USER_ID, DENIS_USER_ID, getDenisFocus, getKatyaFocus } from "@/lib/user-workspace";
+import { isActiveRequest } from "@/lib/workflow";
+import type { RequestStatus, WorkType } from "@/lib/types";
+import {
+  HISTORICAL_CONTRACT_CONVERSION,
+  PLAN_YEARS,
+  QUARTERS,
+  funnelStages,
+  getAverageFunnelStageDuration,
+  getOfferDate,
+  getQuarterFromDate,
+  getStatusListText,
+  isKpContourRequest,
+  matchesDashboardFilters,
+  type Quarter,
+  workTypeOptions
+} from "@/lib/dashboard-metrics";
 
 export default function DashboardPage() {
-  const { requests, tasks, events, statusHistory, currentUserId, isHydrated, applyAutomationSuggestion } = useCrmStore();
+  const { requests, statusHistory, kpOfferPlans, isHydrated } = useCrmStore();
+  const [year, setYear] = useState<number>(2026);
+  const [quarter, setQuarter] = useState<Quarter>("all");
+  const [workType, setWorkType] = useState<WorkType | "all">("all");
+  const [ownerUserId, setOwnerUserId] = useState<string | "all">("all");
 
-  if (!isHydrated) {
-    return <div className="card" role="status">Загрузка демо-данных…</div>;
-  }
-  const activeRequests = requests.filter((request) => isActiveRequest(request.currentStatus));
-  const problemRequests = requests.filter((request) => isRequestProblem(request, tasks));
-  const overdueTasks = tasks.filter((task) => isTaskOverdue(task));
-  const ownerApprovalRequests = requests.filter((request) => request.currentStatus === "owner_approval");
-  const activeOfferSum = activeRequests.reduce((sum, request) => sum + (request.offerAmount ?? 0), 0);
-  const bottlenecks = getProcessBottlenecks(requests, tasks, statusHistory);
-  const averageStageDurations = getAverageStageDurations(requests, statusHistory).filter((stage) => ["participation_decision", "appeal_and_folder", "materials_preparation", "offer_preparation", "owner_approval", "feedback_waiting"].includes(stage.status));
-  const denisFocus = getDenisFocus(requests, tasks);
-  const katyaFocus = getKatyaFocus(requests);
-  const isDenis = currentUserId === DENIS_USER_ID;
-  const isAdmin = currentUserId === ADMIN_USER_ID;
-  const allAutomationSuggestions = requests.flatMap((request) => getAutomationSuggestions(request, tasks, events, new Date()));
-  const automationSuggestions = isAdmin ? allAutomationSuggestions : getSuggestionsForUser(allAutomationSuggestions, currentUserId);
-  const closedStats = {
-    won: requests.filter((request) => request.currentStatus === "won").length,
-    lost: requests.filter((request) => request.currentStatus === "lost").length,
-    notParticipating: requests.filter((request) => request.currentStatus === "not_participating").length,
-    withdrawn: requests.filter((request) => request.currentStatus === "withdrawn_after_start").length,
-    missedDeadline: requests.filter((request) => request.currentStatus === "missed_deadline").length
-  };
+  const dashboard = useMemo(() => {
+    const filtered = requests.filter((request) => matchesDashboardFilters(request, { year, quarter, workType, ownerUserId }));
+    const kpRequests = filtered.filter(isKpContourRequest);
+    const offerSum = kpRequests.reduce((sum, request) => sum + (request.offerAmount ?? 0), 0);
+    const contractCount = kpRequests.filter((request) => request.currentStatus === "won").length;
+    const currentConversion = kpRequests.length > 0 ? Math.round((contractCount / kpRequests.length) * 100) : 0;
+    const firstStageStatuses = new Set<RequestStatus>(funnelStages[0].statuses);
+    const firstStageCount = filtered.filter((request) => firstStageStatuses.has(request.currentStatus)).length;
+    const maxStageCount = Math.max(1, ...funnelStages.map((stage) => filtered.filter((request) => new Set<RequestStatus>(stage.statuses).has(request.currentStatus)).length));
+    const planByYear = kpOfferPlans[String(year)] ?? { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
+
+    return {
+      activeCount: filtered.filter((request) => isActiveRequest(request.currentStatus)).length,
+      kpRequests,
+      offerSum,
+      currentConversion,
+      planFact: QUARTERS.map((item) => {
+        const fact = kpRequests
+          .filter((request) => getQuarterFromDate(getOfferDate(request)) === item)
+          .reduce((sum, request) => sum + (request.offerAmount ?? 0), 0);
+        const plan = planByYear[item] ?? 0;
+        return { quarter: item, plan, fact, percent: plan > 0 ? Math.round((fact / plan) * 100) : 0 };
+      }),
+      funnel: funnelStages.map((stage) => {
+        const stageStatuses = new Set<RequestStatus>(stage.statuses);
+        const stageRequests = filtered.filter((request) => stageStatuses.has(request.currentStatus));
+        const count = stageRequests.length;
+        return {
+          ...stage,
+          count,
+          percent: firstStageCount > 0 ? Math.round((count / firstStageCount) * 100) : 0,
+          width: Math.max(10, Math.round((count / maxStageCount) * 100)),
+          averageDuration: getAverageFunnelStageDuration(stage.statuses, filtered, statusHistory)
+        };
+      }),
+      portfolio: workTypeOptions.map((type) => {
+        const typeRequests = kpRequests.filter((request) => request.workType === type);
+        const amount = typeRequests.reduce((sum, request) => sum + (request.offerAmount ?? 0), 0);
+        return { type, count: typeRequests.length, amount, percent: offerSum > 0 ? Math.round((amount / offerSum) * 100) : 0 };
+      })
+    };
+  }, [kpOfferPlans, ownerUserId, quarter, requests, statusHistory, workType, year]);
+
+  if (!isHydrated) return <div className="card" role="status">Загрузка демо-данных…</div>;
+
+  const maxPlanFact = Math.max(1, ...dashboard.planFact.flatMap((item) => [item.plan, item.fact]));
 
   return (
     <>
       <header className="pageHeader">
         <div>
           <h1>Дашборд</h1>
-          <p>Контроль активных заявок, просрочек и следующих действий.</p>
+          <p>Управленческий вид CRM-воронки: КП, план/факт, договоры и структура портфеля.</p>
         </div>
-        <Link href="/requests" className="button">Открыть реестр</Link>
       </header>
 
-      <section className="cardGrid">
-        <div className="card statCard">
-          <div className="metric">{activeRequests.length}</div>
-          <div className="metricLabel">активных заявок</div>
-        </div>
-        <div className="card statCard">
-          <div className="metric">{overdueTasks.length}</div>
-          <div className="metricLabel">просроченных задач</div>
-        </div>
-        <div className="card statCard">
-          <div className="metric">{problemRequests.length}</div>
-          <div className="metricLabel">проблемных заявок</div>
-        </div>
-        <div className="card statCard">
-          <div className="metric">{formatMoney(activeOfferSum)}</div>
-          <div className="metricLabel">активная сумма КП</div>
-        </div>
+      <section className="filterBar dashboardFilters" aria-label="Фильтры дашборда">
+        <label className="formField">Год<select className="select" value={year} onChange={(event) => setYear(Number(event.target.value))}>{PLAN_YEARS.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label className="formField">Квартал<select className="select" value={quarter} onChange={(event) => setQuarter(event.target.value as Quarter)}><option value="all">Все кварталы</option>{QUARTERS.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label className="formField">Направление / тип работ<select className="select" value={workType} onChange={(event) => setWorkType(event.target.value as WorkType | "all")}><option value="all">Все типы</option>{workTypeOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label className="formField">Ответственный<select className="select" value={ownerUserId} onChange={(event) => setOwnerUserId(event.target.value)}><option value="all">Все</option>{users.map((user) => <option key={user.id} value={user.id}>{user.fullName}</option>)}</select></label>
+      </section>
+
+      <section className="cardGrid dashboardKpis">
+        <div className="card statCard"><div className="metric">{dashboard.activeCount}</div><div className="metricLabel">Текущие обращения</div></div>
+        <div className="card statCard"><div className="metric">{dashboard.kpRequests.length}</div><div className="metricLabel">Выданные КП</div></div>
+        <div className="card statCard"><div className="metric">{formatMoney(dashboard.offerSum)}</div><div className="metricLabel">Сумма КП</div></div>
+        <div className="card statCard"><div className="metric">{dashboard.currentConversion}%</div><div className="metricLabel">Текущая конверсия в договор</div></div>
+        <div className="card statCard"><div className="metric">{HISTORICAL_CONTRACT_CONVERSION}%</div><div className="metricLabel">Историческая конверсия · исторический ориентир</div></div>
       </section>
 
       <section className="card">
-        <div className="sectionHeader"><div><h2>Рабочий фокус</h2><p>Главные операционные сигналы для текущего пользователя.</p></div></div>
-        <div className="detailGrid">
-          {isAdmin ? (
-            <>
-              <div className="field"><span>Все активные заявки</span><strong>{activeRequests.length}</strong></div>
-              <div className="field"><span>Все просроченные задачи</span><strong>{overdueTasks.length}</strong></div>
-              <div className="field"><span>Все проблемные заявки</span><strong>{problemRequests.length}</strong></div>
-              <div className="field"><span>Все подсказки</span><strong>{automationSuggestions.length}</strong></div>
-            </>
-          ) : isDenis ? (
-            <>
-              <div className="field"><span>Без решения об участии</span><strong>{denisFocus.participationPending.length}</strong></div>
-              <div className="field"><span>Без обращения/папки</span><strong>{denisFocus.missingAppealOrFolder.length}</strong></div>
-              <div className="field"><span>Просроченные задачи</span><strong>{denisFocus.overdueTasks.length}</strong></div>
-              <div className="field"><span>Узкие места</span><strong>{denisFocus.bottleneckRequests.length}</strong></div>
-              <div className="field"><span>Близкий срок подачи</span><strong>{denisFocus.deadlineSoon.length}</strong></div>
-              <div className="field"><span>Без следующего действия</span><strong>{denisFocus.noNextAction.length}</strong></div>
-            </>
-          ) : (
-            <>
-              <div className="field"><span>КП в работе</span><strong>{katyaFocus.offersInProgress.length}</strong></div>
-              <div className="field"><span>КП у МЛ</span><strong>{katyaFocus.offersWithMl.length}</strong></div>
-              <div className="field"><span>Документы для подачи</span><strong>{katyaFocus.documentsForSubmission.length}</strong></div>
-              <div className="field"><span>Готово к подаче</span><strong>{katyaFocus.readyToSubmit.length}</strong></div>
-              <div className="field"><span>Нужна обратная связь</span><strong>{katyaFocus.submittedFeedback.length}</strong></div>
-            </>
-          )}
+        <div className="sectionHeader"><div><h2>План / факт по сумме КП</h2><p>Факт КП привязан к дате подготовки КП, затем к дате подачи, затем к дате создания заявки.</p></div></div>
+        <div className="planFactGrid">
+          {dashboard.planFact.map((item) => (
+            <div className="planFactItem" key={item.quarter}>
+              <strong>{item.quarter}</strong>
+              <div className="barPair" aria-label={`${item.quarter}: план КП ${formatMoney(item.plan)}, факт КП ${formatMoney(item.fact)}`}>
+                <span className="planBar" style={{ height: `${Math.max(4, (item.plan / maxPlanFact) * 100)}%` }} />
+                <span className="factBar" style={{ height: `${Math.max(4, (item.fact / maxPlanFact) * 100)}%` }} />
+              </div>
+              <div className="small"><b>План КП:</b> {formatMoney(item.plan)}</div>
+              <div className="small"><b>Факт КП:</b> {formatMoney(item.fact)}</div>
+              <div className="small muted">Выполнение: {item.percent}%</div>
+            </div>
+          ))}
         </div>
       </section>
 
-      <section className="card">
-        <div className="sectionHeader"><div><h2>Предлагаемые действия</h2><p>Автоматические подсказки по заявкам и задачам.</p></div></div>
-        <AutomationSuggestions suggestions={automationSuggestions} requests={requests} onApply={(suggestionId) => applyAutomationSuggestion(suggestionId, currentUserId)} />
-      </section>
-
-      <section className="card">
-        <div className="sectionHeader"><div><h2>Статистика закрытия</h2><p>Итоги завершённых заявок в demo-store.</p></div></div>
-        <div className="detailGrid">
-          <div className="field"><span>Победили</span><strong>{closedStats.won}</strong></div>
-          <div className="field"><span>Проиграли</span><strong>{closedStats.lost}</strong></div>
-          <div className="field"><span>Не участвуем</span><strong>{closedStats.notParticipating}</strong></div>
-          <div className="field"><span>Отказались после запуска</span><strong>{closedStats.withdrawn}</strong></div>
-          <div className="field"><span>Не успели податься</span><strong>{closedStats.missedDeadline}</strong></div>
-        </div>
-      </section>
-
-      <section className="gridTwo">
+      <section className="gridTwo dashboardCharts">
         <div className="card">
-          <h2>Узкие места процесса</h2>
-          {bottlenecks.length === 0 ? <p className="muted">Критичных узких мест не найдено.</p> : (
-            <ul>
-              {bottlenecks.slice(0, 8).map((item) => (
-                <li key={item.id}>
-                  <Link href={getRequestDetailsHref(item.requestId)} className="tableLink">{item.requestNumber}</Link> — {item.title}
-                  <div className="small muted">{item.description}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="card">
-          <h2>Средние сроки этапов</h2>
-          <div className="tableWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Этап</th>
-                  <th>Средний срок</th>
-                  <th>Замеров</th>
-                </tr>
-              </thead>
-              <tbody>
-                {averageStageDurations.map((stage) => (
-                  <tr key={stage.status}>
-                    <td>{stage.statusLabel}</td>
-                    <td>{stage.count > 0 ? stage.averageText : "Недостаточно данных"}</td>
-                    <td>{stage.count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="sectionHeader"><div><h2>Воронка продаж</h2><p>Средние сроки этапов встроены в ступени воронки.</p></div></div>
+          <div className="funnelList">
+            {dashboard.funnel.map((stage) => (
+              <div className="funnelRow" key={stage.id}>
+                <div className="funnelMeta"><strong>{stage.title}</strong><span>{stage.count} заявок · {stage.percent}% от входящих · срок {stage.averageDuration.text}</span></div>
+                <div className="funnelTrack"><span className="funnelBar" style={{ width: `${stage.width}%` }} /></div>
+                <div className="small muted">{getStatusListText(stage.statuses)}</div>
+              </div>
+            ))}
           </div>
         </div>
-      </section>
 
-      <section className="gridTwo">
         <div className="card">
-          <h2>Требует внимания</h2>
-          <RequestTable requests={problemRequests} tasks={tasks} />
-        </div>
-        <div className="sectionStack">
-          <div className="card">
-            <h2>Просроченные задачи</h2>
-            <TaskList tasks={overdueTasks} />
-          </div>
-          <div className="card">
-            <h2>КП на согласовании у МЛ</h2>
-            {ownerApprovalRequests.length === 0 ? (
-              <p className="muted">Нет заявок на этом этапе.</p>
-            ) : (
-              <ul>
-                {ownerApprovalRequests.map((request) => (
-                  <li key={request.id}>
-                    <Link href={getRequestDetailsHref(request.id)} className="tableLink">{request.title}</Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className="sectionHeader"><div><h2>Структура портфеля</h2><p>КП-контур по типам работ и сумме КП.</p></div><strong>{formatMoney(dashboard.offerSum)}</strong></div>
+          <div className="portfolioList">
+            {dashboard.portfolio.map((item) => (
+              <div className="portfolioRow" key={item.type}>
+                <div className="portfolioTop"><strong>{item.type}</strong><span>{item.count} КП · {formatMoney(item.amount)} · {item.percent}%</span></div>
+                <div className="portfolioTrack"><span style={{ width: `${item.percent}%` }} /></div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

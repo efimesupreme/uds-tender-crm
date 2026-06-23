@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { events, fileLinks, requests, statusHistory, tasks } from "./mock-data";
 import type { ContractAnalysisStatus, CostsStatus, DocumentsStatus, FeedbackStatus, FileLink, OfferStatus, ParticipationDecision, ProtocolStatus, Request, RequestEvent, RequestResult, RequestStatus, RequestTask, SourceType, StatusHistoryItem, TaskStatus, WorkType } from "./types";
+import { getEmptyPlans, type KpOfferPlans } from "./dashboard-metrics";
 import { hasActiveTask, type AutomationAction } from "./process-automation";
 import { validateRequestTransition, type TransitionValidationResult } from "./transition-guards";
 import { canTransitionRequest, createDefaultTasksForApprovedRequest, getDefaultTaskAssigneeUserId, isFinalRequestStatus, taskTypeLabels, type TaskType } from "./workflow";
@@ -19,6 +20,7 @@ export type CrmState = {
   events: RequestEvent[];
   fileLinks: FileLink[];
   currentUserId: string;
+  kpOfferPlans: KpOfferPlans;
   isHydrated: boolean;
 };
 
@@ -75,11 +77,25 @@ function normalizeDemoUserLabels<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)
     .replaceAll("Денис", "Тагиев")
     .replaceAll("Катя", "Безрукова")
+    .replaceAll("Победили", "Договор")
   ) as T;
 }
 
+function normalizePlans(plans?: Partial<KpOfferPlans>): KpOfferPlans {
+  const next = getEmptyPlans();
+  Object.entries(plans ?? {}).forEach(([year, quarters]) => {
+    next[year] = { ...next[year], Q1: 0, Q2: 0, Q3: 0, Q4: 0, ...quarters };
+  });
+  return next;
+}
+
+function normalizeStoredState(value: CrmState): CrmState {
+  const normalized = normalizeDemoUserLabels(value);
+  return { ...normalized, kpOfferPlans: normalizePlans(normalized.kpOfferPlans) };
+}
+
 function initialState(): CrmState {
-  return clone({ requests, tasks, statusHistory, events, fileLinks, currentUserId: DEFAULT_USER_ID, isHydrated: false });
+  return clone({ requests, tasks, statusHistory, events, fileLinks, currentUserId: DEFAULT_USER_ID, kpOfferPlans: getEmptyPlans(), isHydrated: false });
 }
 
 let state: CrmState = initialState();
@@ -112,7 +128,7 @@ function readStoredState(): CrmState {
   }
 
   try {
-    return normalizeDemoUserLabels({ ...initialState(), ...JSON.parse(raw), currentUserId: userId, isHydrated: true } as CrmState);
+    return normalizeStoredState({ ...initialState(), ...JSON.parse(raw), currentUserId: userId, isHydrated: true } as CrmState);
   } catch {
     const seeded = initialState();
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
@@ -200,6 +216,19 @@ export function useCrmStore() {
     writeState({ ...state, currentUserId: getCurrentUserOrFallback(userId) });
   }, []);
 
+  const updateKpOfferPlan = useCallback((year: number, quarter: keyof KpOfferPlans[string], value: number) => {
+    updateState((current) => ({
+      ...current,
+      kpOfferPlans: normalizePlans({
+        ...current.kpOfferPlans,
+        [String(year)]: {
+          ...(current.kpOfferPlans[String(year)] ?? { Q1: 0, Q2: 0, Q3: 0, Q4: 0 }),
+          [quarter]: Number.isFinite(value) ? Math.max(0, value) : 0
+        }
+      })
+    }));
+  }, []);
+
   const createRequest = useCallback((input: CreateRequestInput, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => {
     const createdAt = nowIso();
     const requestId = generateRequestId();
@@ -272,7 +301,7 @@ export function useCrmStore() {
       throw new Error("Выбранный статус не является финальным");
     }
     if (input.status === "won" && (!input.resultReceivedAt || !comment)) {
-      throw new Error("Для победы обязательны дата результата и комментарий");
+      throw new Error("Для договоры обязательны дата результата и комментарий");
     }
     if (input.status === "lost" && (!lossReason || !comment)) {
       throw new Error("Для проигрыша обязательны причина проигрыша и комментарий");
@@ -545,6 +574,7 @@ export function useCrmStore() {
     ...snapshot,
     setCurrentUser,
     resetDemoData,
+    updateKpOfferPlan,
     createRequest,
     transitionRequest,
     closeRequest,
@@ -568,5 +598,5 @@ export function useCrmStore() {
     updateDocumentsBlock,
     updateOfferBlock,
     updateFeedbackBlock
-  }), [snapshot, resetDemoData, createRequest, transitionRequest, closeRequest, createTask, createOfferPreparationTask, createOwnerApprovalTask, createSubmissionTask, createFeedbackTask, applyAutomationSuggestion, setTaskStatus, completeTaskWithEffects, updateTaskAssignee, updateTaskExecutor, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock]);
+  }), [snapshot, resetDemoData, updateKpOfferPlan, createRequest, transitionRequest, closeRequest, createTask, createOfferPreparationTask, createOwnerApprovalTask, createSubmissionTask, createFeedbackTask, applyAutomationSuggestion, setTaskStatus, completeTaskWithEffects, updateTaskAssignee, updateTaskExecutor, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock]);
 }
