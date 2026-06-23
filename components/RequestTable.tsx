@@ -5,6 +5,10 @@ import { isFinalRequestStatus, isRequestProblem, statusLabels } from "@/lib/work
 import { formatDateTime, formatMoney, getUserName } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
 
+function getDisplaySource(request: Request) {
+  return request.sourceCustomValue || request.sourceType;
+}
+
 export function RequestTable({ requests, tasks }: { requests: Request[]; tasks: RequestTask[] }) {
   return (
     <>
@@ -23,6 +27,7 @@ export function RequestTable({ requests, tasks }: { requests: Request[]; tasks: 
               <div className="mobileMetaGrid">
                 <span>Срок: {formatDateTime(request.submissionDeadlineAt)}</span>
                 <span>Ответственный: {getUserName(request.ownerUserId)}</span>
+                <span>Источник: {getDisplaySource(request)}</span>
                 <span>КП: {formatMoney(request.offerAmount)}</span>
                 <span>Дальше: {request.nextActionText ?? "нет действия"}</span>
               </div>
@@ -53,7 +58,7 @@ export function RequestTable({ requests, tasks }: { requests: Request[]; tasks: 
                 <Link href={getRequestDetailsHref(request.id)} className="tableLink">
                   {request.title}
                 </Link>
-                <div className="small muted">{request.region} · {request.workType}</div>
+                <div className="small muted">{request.region} · {request.workType} · {getDisplaySource(request)}</div>
               </td>
               <td>{request.customerName}</td>
               <td><StatusBadge status={request.currentStatus} /></td>

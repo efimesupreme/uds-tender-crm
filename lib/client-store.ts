@@ -5,7 +5,7 @@ import { events, fileLinks, requests, statusHistory, tasks } from "./mock-data";
 import type { ContractAnalysisStatus, CostsStatus, DocumentsStatus, FeedbackStatus, FileLink, OfferStatus, ParticipationDecision, ProtocolStatus, Request, RequestEvent, RequestResult, RequestStatus, RequestTask, StatusHistoryItem, TaskStatus } from "./types";
 import { hasActiveTask, type AutomationAction } from "./process-automation";
 import { validateRequestTransition, type TransitionValidationResult } from "./transition-guards";
-import { canTransitionRequest, createDefaultTasksForApprovedRequest, isFinalRequestStatus, taskTypeLabels, type TaskType } from "./workflow";
+import { canTransitionRequest, createDefaultTasksForApprovedRequest, getDefaultTaskAssigneeUserId, isFinalRequestStatus, taskTypeLabels, type TaskType } from "./workflow";
 
 export const STORAGE_KEY = "uds-tender-crm-demo-store-v1";
 const LEGACY_STORAGE_KEYS = ["uds-tender-crm-demo-store", "uds-tender-crm-store", "uds-tender-crm-demo-store-v0"];
@@ -30,6 +30,7 @@ type CreateRequestInput = {
   submissionDeadlineAt?: string;
   ownerUserId: string;
   sourceType: string;
+  sourceCustomValue?: string;
 };
 
 type UpdateAppealAndFolderInput = {
@@ -203,6 +204,7 @@ export function useCrmStore() {
       customerName: input.customerName,
       region: input.region,
       sourceType: input.sourceType,
+      sourceCustomValue: normalizeText(input.sourceCustomValue),
       requestType: "Запрос КП",
       workType: input.workType,
       submissionDeadlineAt: input.submissionDeadlineAt ? new Date(input.submissionDeadlineAt).toISOString() : undefined,
@@ -323,7 +325,8 @@ export function useCrmStore() {
 
   const createTask = useCallback((requestId: string, input: CreateTaskInput) => {
     const createdAt = nowIso();
-    const task: RequestTask = { id: generateTaskId(), requestId, title: input.title, taskType: input.taskType ?? "prepare_offer", status: "new", createdBy: input.createdBy ?? DEFAULT_ACTOR_ID, assigneeUserId: input.assigneeUserId, assigneeExternalId: input.assigneeExternalId, plannedDueAt: input.plannedDueAt, createdAt, returnedCount: 0, comment: input.comment };
+    const taskType = input.taskType ?? "prepare_offer";
+    const task: RequestTask = { id: generateTaskId(), requestId, title: input.title, taskType, status: "new", createdBy: input.createdBy ?? DEFAULT_ACTOR_ID, assigneeUserId: input.assigneeUserId ?? getDefaultTaskAssigneeUserId(taskType, input.createdBy), assigneeExternalId: input.assigneeExternalId, plannedDueAt: input.plannedDueAt, createdAt, returnedCount: 0, comment: input.comment };
     updateState((current) => ({ ...current, tasks: [task, ...current.tasks], events: [createEvent({ requestId, taskId: task.id, eventType: "task_created", actorUserId: task.createdBy, comment: task.title }, createdAt), ...current.events] }));
     return task;
   }, []);
@@ -335,7 +338,7 @@ export function useCrmStore() {
     updateState((current) => {
       const request = current.requests.find((item) => item.id === requestId);
       if (!request || hasActiveTask(current.tasks, requestId, taskType)) return current;
-      createdTask = { id: generateTaskId(), requestId, title, taskType, status: "new", createdBy: actorUserId, assigneeUserId, createdAt, returnedCount: 0, comment };
+      createdTask = { id: generateTaskId(), requestId, title, taskType, status: "new", createdBy: actorUserId, assigneeUserId: assigneeUserId || getDefaultTaskAssigneeUserId(taskType, actorUserId), createdAt, returnedCount: 0, comment };
       return {
         ...current,
         tasks: [createdTask, ...current.tasks],
@@ -350,7 +353,7 @@ export function useCrmStore() {
   }, []);
 
   const createOfferPreparationTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "prepare_offer", taskTypeLabels.prepare_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подготовку КП"), [createAutomationTask]);
-  const createOwnerApprovalTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "owner_approval", taskTypeLabels.owner_approval, "u-denis", actorUserId, "Автоматический сценарий: создана задача на согласование КП с МЛ"), [createAutomationTask]);
+  const createOwnerApprovalTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "owner_approval", taskTypeLabels.owner_approval, "u-katya", actorUserId, "Автоматический сценарий: создана задача на согласование КП с МЛ"), [createAutomationTask]);
   const createSubmissionTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "submit_offer", taskTypeLabels.submit_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подачу КП"), [createAutomationTask]);
   const createFeedbackTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "request_feedback", taskTypeLabels.request_feedback, "u-katya", actorUserId, "Автоматический сценарий: создана задача на запрос обратной связи"), [createAutomationTask]);
 
@@ -376,12 +379,72 @@ export function useCrmStore() {
       const task = current.tasks.find((item) => item.id === taskId);
       if (!task) return current;
       const at = nowIso();
+      const start = task.startedAt ?? task.createdAt;
+      const actualDurationMinutes = status === "completed" && start ? Math.max(0, Math.round((new Date(at).getTime() - new Date(start).getTime()) / 60000)) : task.actualDurationMinutes;
       return {
         ...current,
-        tasks: updateTaskById(current.tasks, taskId, (item) => ({ ...item, status, comment: comment ?? item.comment, resultText: resultText ?? item.resultText, completedAt: status === "completed" ? at : item.completedAt, returnedCount: status === "returned" ? item.returnedCount + 1 : item.returnedCount })),
+        tasks: updateTaskById(current.tasks, taskId, (item) => ({ ...item, status, startedAt: status === "in_progress" ? (item.startedAt ?? at) : item.startedAt, comment: comment ?? item.comment, resultText: resultText ?? item.resultText, completedAt: status === "completed" ? at : item.completedAt, actualDurationMinutes })),
         events: [createEvent({ requestId: task.requestId, taskId, eventType: `task_${status}`, actorUserId, comment: resultText ?? comment }, at), ...current.events]
       };
     });
+  }, []);
+
+
+  const updateTaskAssignee = useCallback((taskId: string, assigneeUserId: string, actorUserId: string) => {
+    updateState((current) => {
+      const task = current.tasks.find((item) => item.id === taskId);
+      if (!task || task.assigneeUserId === assigneeUserId) return current;
+      const at = nowIso();
+      return {
+        ...current,
+        tasks: updateTaskById(current.tasks, taskId, (item) => ({ ...item, assigneeUserId, assigneeExternalId: undefined })),
+        events: [createEvent({ requestId: task.requestId, taskId, eventType: "task_assignee_changed", actorUserId, oldValue: task.assigneeUserId, newValue: assigneeUserId, comment: "Ответственный по задаче изменён" }, at), ...current.events]
+      };
+    });
+  }, []);
+
+  const completeTaskWithEffects = useCallback((taskId: string, actorUserId: string) => {
+    let messages: string[] = ["Задача выполнена"];
+    updateState((current) => {
+      const task = current.tasks.find((item) => item.id === taskId);
+      const request = task ? current.requests.find((item) => item.id === task.requestId) : undefined;
+      if (!task || !request) return current;
+      const at = nowIso();
+      const start = task.startedAt ?? task.createdAt;
+      const duration = start ? Math.max(0, Math.round((new Date(at).getTime() - new Date(start).getTime()) / 60000)) : null;
+      const nextTasks: RequestTask[] = [];
+      const eventsToAdd: RequestEvent[] = [createEvent({ requestId: task.requestId, taskId, eventType: "task_completed", actorUserId, comment: "Задача выполнена" }, at)];
+      const addTask = (taskType: TaskType, comment: string) => {
+        if (current.tasks.some((item) => item.requestId === task.requestId && item.taskType === taskType && item.status !== "completed") || nextTasks.some((item) => item.taskType === taskType)) return;
+        const created: RequestTask = { id: generateTaskId(), requestId: task.requestId, title: taskTypeLabels[taskType], taskType, status: "new", createdBy: actorUserId, assigneeUserId: getDefaultTaskAssigneeUserId(taskType, actorUserId), createdAt: at, returnedCount: 0, comment };
+        nextTasks.push(created);
+        eventsToAdd.push(createEvent({ requestId: task.requestId, taskId: created.id, eventType: "task_created", actorUserId, comment: created.title }, at));
+      };
+      const patch: Partial<Request> = {};
+      const warn = (text: string) => messages.push(text);
+      if (task.taskType === "participation_decision" && request.participationDecision === "pending") warn("Заполните решение об участии в карточке заявки");
+      if (["create_appeal", "create_folder"].includes(task.taskType) && (!request.appealNumber || !request.workingFolderUrl)) warn("Заполните номер обращения и ссылку на рабочую папку");
+      if (task.taskType === "prepare_costs") { patch.costsStatus = "checking"; addTask("check_costs", "Проверьте и примите подготовленные затраты"); }
+      if (task.taskType === "check_costs") request.costsStatus === "approved" ? addTask("prepare_offer", "Затраты утверждены, подготовьте КП") : warn("Утвердите затраты в карточке заявки");
+      if (task.taskType === "contract_review") addTask("prepare_protocol", "Создайте протокол разногласий при необходимости");
+      if (task.taskType === "prepare_protocol") addTask("approve_protocol_lawyers", "Согласуйте протокол с юристами");
+      if (task.taskType === "approve_protocol_lawyers") addTask("approve_protocol_gd", "Согласуйте протокол с ГД");
+      if (task.taskType === "approve_protocol_gd") eventsToAdd.push(createEvent({ requestId: task.requestId, taskId, eventType: "contract_part_approved", actorUserId, comment: "Договорная часть согласована" }, at));
+      if (task.taskType === "collect_documents" && request.documentsStatus !== "ready") warn("Отметьте готовность документов в карточке заявки");
+      if (task.taskType === "prepare_offer") request.offerStatus === "ready" ? addTask("owner_approval", "КП готово, согласуйте с МЛ") : warn("Отметьте готовность КП в карточке заявки");
+      if (task.taskType === "owner_approval") request.offerStatus === "approved" ? addTask("submit_offer", "КП согласовано, подайте его заказчику") : warn("Отметьте согласование КП с МЛ в карточке заявки");
+      if (task.taskType === "submit_offer") {
+        if (!request.submissionSubmittedAt) warn("Заполните дату подачи КП в карточке заявки");
+        else if (canTransitionRequest(request.currentStatus, "submitted")) { const guard = validateRequestTransition(request, current.tasks, request.currentStatus, "submitted"); guard.allowed ? (patch.currentStatus = "submitted") : warn(`Переход запрещён: ${guard.errors.join(", ")}`); }
+      }
+      return {
+        ...current,
+        requests: Object.keys(patch).length ? updateRequestById(current.requests, task.requestId, (item) => ({ ...item, ...patch })) : current.requests,
+        tasks: [...nextTasks, ...updateTaskById(current.tasks, taskId, (item) => ({ ...item, status: "completed", completedAt: at, actualDurationMinutes: duration, resultText: "Выполнено" }))],
+        events: [...eventsToAdd, ...current.events]
+      };
+    });
+    return messages;
   }, []);
 
   const updateAppealAndFolder = useCallback((requestId: string, input: UpdateAppealAndFolderInput, actorUserId: string) => {
@@ -475,8 +538,8 @@ export function useCrmStore() {
     applyAutomationSuggestion,
     startTask: (taskId: string, actorUserId: string) => setTaskStatus(taskId, "in_progress", actorUserId),
     completeTask: (taskId: string, actorUserId: string, resultText?: string) => setTaskStatus(taskId, "completed", actorUserId, undefined, resultText),
-    returnTask: (taskId: string, actorUserId: string, comment?: string) => setTaskStatus(taskId, "returned", actorUserId, comment),
-    acceptTask: (taskId: string, actorUserId: string) => setTaskStatus(taskId, "accepted", actorUserId),
+    completeTaskWithEffects,
+    updateTaskAssignee,
     updateAppealAndFolder,
     updateNextAction,
     updateParticipationBlock,
@@ -485,5 +548,5 @@ export function useCrmStore() {
     updateDocumentsBlock,
     updateOfferBlock,
     updateFeedbackBlock
-  }), [snapshot, resetDemoData, createRequest, transitionRequest, closeRequest, createTask, createOfferPreparationTask, createOwnerApprovalTask, createSubmissionTask, createFeedbackTask, applyAutomationSuggestion, setTaskStatus, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock]);
+  }), [snapshot, resetDemoData, createRequest, transitionRequest, closeRequest, createTask, createOfferPreparationTask, createOwnerApprovalTask, createSubmissionTask, createFeedbackTask, applyAutomationSuggestion, setTaskStatus, completeTaskWithEffects, updateTaskAssignee, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock]);
 }
