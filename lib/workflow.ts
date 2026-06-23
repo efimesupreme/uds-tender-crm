@@ -86,21 +86,14 @@ export const CUSTOM_SOURCE_TYPE = "Другое / свободный ввод";
 export const taskTypes = [
   "participation_decision",
   "create_appeal",
-  "create_folder",
-  "prepare_costs",
-  "check_costs",
+  "approve_costs",
   "contract_review",
   "prepare_protocol",
-  "approve_protocol_lawyers",
-  "approve_protocol_gd",
   "collect_documents",
   "prepare_offer",
   "owner_approval",
   "submit_offer",
-  "request_feedback",
-  "clarify_documents",
-  "management_decision",
-  "record_result"
+  "other"
 ] as const;
 
 export type TaskType = (typeof taskTypes)[number];
@@ -108,25 +101,17 @@ export type TaskType = (typeof taskTypes)[number];
 export const taskTypeLabels: Record<TaskType, string> = {
   participation_decision: "Согласовать участие с ГД",
   create_appeal: "Завести обращение",
-  create_folder: "Создать рабочую папку",
-  prepare_costs: "Подготовить затраты",
-  check_costs: "Проверить и принять затраты",
+  approve_costs: "Утвердить затраты",
   contract_review: "Проанализировать договор",
   prepare_protocol: "Подготовить протокол разногласий",
-  approve_protocol_lawyers: "Согласовать протокол с юристами",
-  approve_protocol_gd: "Согласовать протокол с ГД",
   collect_documents: "Собрать комплект документов",
   prepare_offer: "Подготовить КП",
   owner_approval: "Согласовать КП с МЛ",
   submit_offer: "Подать КП",
-  request_feedback: "Запросить обратную связь",
-  clarify_documents: "Уточнить документы",
-  management_decision: "Управленческое решение",
-  record_result: "Зафиксировать результат"
+  other: "Прочее"
 };
 
-
-const denisDefaultTaskTypes = new Set<TaskType>(["participation_decision", "create_appeal", "create_folder", "prepare_costs", "check_costs", "contract_review", "prepare_protocol", "approve_protocol_lawyers", "approve_protocol_gd"]);
+const denisDefaultTaskTypes = new Set<TaskType>(["participation_decision", "create_appeal", "approve_costs", "contract_review", "prepare_protocol"]);
 const katyaDefaultTaskTypes = new Set<TaskType>(["collect_documents", "prepare_offer", "owner_approval", "submit_offer"]);
 export const taskResponsibleOptions = ["u-denis", "u-katya"] as const;
 export function getDefaultTaskAssigneeUserId(taskType: TaskType, fallbackUserId = "u-denis"): string {
@@ -140,8 +125,7 @@ export function getAllowedTaskAssigneeUserIds(_taskType: TaskType): string[] {
 
 export const approvedRequestTaskTemplates: Array<Pick<RequestTask, "title" | "taskType" | "assigneeUserId" | "assigneeExternalId" | "comment">> = [
   { taskType: "create_appeal", title: taskTypeLabels.create_appeal, assigneeUserId: "u-denis" },
-  { taskType: "create_folder", title: taskTypeLabels.create_folder, assigneeUserId: "u-denis" },
-  { taskType: "prepare_costs", title: taskTypeLabels.prepare_costs, assigneeUserId: "u-denis" },
+  { taskType: "approve_costs", title: taskTypeLabels.approve_costs, assigneeUserId: "u-denis" },
   { taskType: "contract_review", title: taskTypeLabels.contract_review, assigneeUserId: "u-denis" },
   { taskType: "collect_documents", title: taskTypeLabels.collect_documents, assigneeUserId: "u-katya" }
 ];

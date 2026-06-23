@@ -355,7 +355,7 @@ export function useCrmStore() {
   const createOfferPreparationTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "prepare_offer", taskTypeLabels.prepare_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подготовку КП"), [createAutomationTask]);
   const createOwnerApprovalTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "owner_approval", taskTypeLabels.owner_approval, "u-katya", actorUserId, "Автоматический сценарий: создана задача на согласование КП с МЛ"), [createAutomationTask]);
   const createSubmissionTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "submit_offer", taskTypeLabels.submit_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подачу КП"), [createAutomationTask]);
-  const createFeedbackTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "request_feedback", taskTypeLabels.request_feedback, "u-katya", actorUserId, "Автоматический сценарий: создана задача на запрос обратной связи"), [createAutomationTask]);
+  const createFeedbackTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "other", taskTypeLabels.other, actorUserId, actorUserId, "Автоматический сценарий: запланируйте обратную связь"), [createAutomationTask]);
 
   const applyAutomationSuggestion = useCallback((suggestionId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => {
     const [requestId, actionKey] = suggestionId.split(":");
@@ -403,6 +403,20 @@ export function useCrmStore() {
     });
   }, []);
 
+  const updateTaskExecutor = useCallback((taskId: string, executorName: string, actorUserId: string) => {
+    updateState((current) => {
+      const task = current.tasks.find((item) => item.id === taskId);
+      const normalized = executorName.trim();
+      if (!task || (task.executorName ?? "") === normalized) return current;
+      const at = nowIso();
+      return {
+        ...current,
+        tasks: updateTaskById(current.tasks, taskId, (item) => ({ ...item, executorName: normalized || undefined })),
+        events: [createEvent({ requestId: task.requestId, taskId, eventType: "task_executor_changed", actorUserId, oldValue: task.executorName, newValue: normalized, comment: "Исполнитель задачи изменён" }, at), ...current.events]
+      };
+    });
+  }, []);
+
   const completeTaskWithEffects = useCallback((taskId: string, actorUserId: string) => {
     let messages: string[] = ["Задача выполнена"];
     updateState((current) => {
@@ -423,13 +437,10 @@ export function useCrmStore() {
       const patch: Partial<Request> = {};
       const warn = (text: string) => messages.push(text);
       if (task.taskType === "participation_decision" && request.participationDecision === "pending") warn("Заполните решение об участии в карточке заявки");
-      if (["create_appeal", "create_folder"].includes(task.taskType) && (!request.appealNumber || !request.workingFolderUrl)) warn("Заполните номер обращения и ссылку на рабочую папку");
-      if (task.taskType === "prepare_costs") { patch.costsStatus = "checking"; addTask("check_costs", "Проверьте и примите подготовленные затраты"); }
-      if (task.taskType === "check_costs") request.costsStatus === "approved" ? addTask("prepare_offer", "Затраты утверждены, подготовьте КП") : warn("Утвердите затраты в карточке заявки");
-      if (task.taskType === "contract_review") addTask("prepare_protocol", "Создайте протокол разногласий при необходимости");
-      if (task.taskType === "prepare_protocol") addTask("approve_protocol_lawyers", "Согласуйте протокол с юристами");
-      if (task.taskType === "approve_protocol_lawyers") addTask("approve_protocol_gd", "Согласуйте протокол с ГД");
-      if (task.taskType === "approve_protocol_gd") eventsToAdd.push(createEvent({ requestId: task.requestId, taskId, eventType: "contract_part_approved", actorUserId, comment: "Договорная часть согласована" }, at));
+      if (task.taskType === "create_appeal" && (!request.appealNumber || !request.workingFolderUrl)) warn("Заполните номер обращения и ссылку на рабочую папку");
+      if (task.taskType === "approve_costs") request.costsStatus === "approved" ? addTask("prepare_offer", "Затраты утверждены, подготовьте КП") : warn("Утвердите затраты в карточке заявки");
+      if (task.taskType === "contract_review") addTask("prepare_protocol", "Подготовьте протокол разногласий при необходимости");
+      if (task.taskType === "prepare_protocol") eventsToAdd.push(createEvent({ requestId: task.requestId, taskId, eventType: "contract_part_prepared", actorUserId, comment: "Договорная часть подготовлена" }, at));
       if (task.taskType === "collect_documents" && request.documentsStatus !== "ready") warn("Отметьте готовность документов в карточке заявки");
       if (task.taskType === "prepare_offer") request.offerStatus === "ready" ? addTask("owner_approval", "КП готово, согласуйте с МЛ") : warn("Отметьте готовность КП в карточке заявки");
       if (task.taskType === "owner_approval") request.offerStatus === "approved" ? addTask("submit_offer", "КП согласовано, подайте его заказчику") : warn("Отметьте согласование КП с МЛ в карточке заявки");
@@ -540,6 +551,8 @@ export function useCrmStore() {
     completeTask: (taskId: string, actorUserId: string, resultText?: string) => setTaskStatus(taskId, "completed", actorUserId, undefined, resultText),
     completeTaskWithEffects,
     updateTaskAssignee,
+    updateTaskExecutor,
+    returnTaskToWork: (taskId: string, actorUserId: string) => setTaskStatus(taskId, "in_progress", actorUserId, "Задача возвращена в работу"),
     updateAppealAndFolder,
     updateNextAction,
     updateParticipationBlock,
@@ -548,5 +561,5 @@ export function useCrmStore() {
     updateDocumentsBlock,
     updateOfferBlock,
     updateFeedbackBlock
-  }), [snapshot, resetDemoData, createRequest, transitionRequest, closeRequest, createTask, createOfferPreparationTask, createOwnerApprovalTask, createSubmissionTask, createFeedbackTask, applyAutomationSuggestion, setTaskStatus, completeTaskWithEffects, updateTaskAssignee, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock]);
+  }), [snapshot, resetDemoData, createRequest, transitionRequest, closeRequest, createTask, createOfferPreparationTask, createOwnerApprovalTask, createSubmissionTask, createFeedbackTask, applyAutomationSuggestion, setTaskStatus, completeTaskWithEffects, updateTaskAssignee, updateTaskExecutor, updateAppealAndFolder, updateNextAction, updateParticipationBlock, updateCostsBlock, updateContractBlock, updateDocumentsBlock, updateOfferBlock, updateFeedbackBlock]);
 }

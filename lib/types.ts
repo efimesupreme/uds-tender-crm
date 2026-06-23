@@ -138,6 +138,7 @@ export type RequestTask = {
   createdBy: string;
   assigneeUserId?: string;
   assigneeExternalId?: string;
+  executorName?: string;
   plannedDueAt?: string;
   completedAt?: string;
   startedAt?: string;
