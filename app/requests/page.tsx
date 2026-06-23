@@ -9,7 +9,7 @@ import { useCrmStore } from "@/lib/client-store";
 import { getRequestDetailsHref } from "@/lib/request-links";
 import { users } from "@/lib/mock-data";
 import { CUSTOM_SOURCE_TYPE, requestStatuses, sourceTypeOptions, statusLabels, workTypeOptions } from "@/lib/workflow";
-import type { RequestStatus } from "@/lib/types";
+import type { RequestStatus, SourceType, WorkType } from "@/lib/types";
 import { isMyZoneRequest } from "@/lib/user-workspace";
 
 const emptyForm = {
@@ -173,8 +173,8 @@ function RequestsPageContent() {
         title: form.title.trim(),
         customerName: form.customerName.trim(),
         region: form.region.trim(),
-        workType: form.workType.trim(),
-        sourceType: form.sourceType.trim(),
+        workType: form.workType.trim() as WorkType,
+        sourceType: form.sourceType.trim() as SourceType,
         sourceCustomValue: form.sourceType === CUSTOM_SOURCE_TYPE ? form.sourceCustomValue.trim() : undefined,
       },
       currentUserId,

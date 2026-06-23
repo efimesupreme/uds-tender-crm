@@ -44,6 +44,8 @@ export type OfferStatus = "not_started" | "in_progress" | "ready" | "with_ml" | 
 export type FeedbackStatus = "waiting" | "received" | "no_response" | "needs_clarification" | "final_result_received";
 
 export type RequestResult = "none" | "won" | "lost" | "not_participating" | "withdrawn_after_start" | "missed_deadline" | "paused" | "canceled" | "no_feedback";
+export type WorkType = "ППТ" | "ППТЛО" | "ПД" | "ПД (въезд)" | "АН" | "Прочее";
+export type SourceType = "МЛ" | "Тендер" | "Повторное обращение" | "Сайт" | "Рекомендация" | "Другое / свободный ввод";
 
 export type Request = {
   id: string;
@@ -51,11 +53,11 @@ export type Request = {
   title: string;
   customerName: string;
   region: string;
-  sourceType: string;
+  sourceType: SourceType;
   sourceCustomValue?: string;
   sourceUrl?: string;
   requestType: string;
-  workType: string;
+  workType: WorkType;
   submissionDeadlineAt?: string;
   currentStatus: RequestStatus;
   participationDecision: ParticipationDecision;
