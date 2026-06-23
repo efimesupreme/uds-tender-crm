@@ -449,7 +449,7 @@ export default function RequestDetailsClient({
 
       <section className="sectionStack">
         <div className="card">
-          <h2>Сводка</h2>
+          <div className="sectionHeader"><div><h2>Сводка</h2><p>Ключевые параметры заявки для быстрого контроля.</p></div></div>
           <div className="detailGrid">
             <div className="field">
               <span>ID</span>
@@ -1709,9 +1709,9 @@ export default function RequestDetailsClient({
             {requestHistory.length === 0 ? (
               <p className="muted">Истории пока нет.</p>
             ) : (
-              <ul>
+              <ul className="journalList">
                 {requestHistory.map((item) => (
-                  <li key={item.id}>
+                  <li className="journalItem" key={item.id}>
                     {formatDateTime(item.changedAt)} —{" "}
                     {item.fromStatus
                       ? `${getStatusLabel(item.fromStatus)} → `

@@ -48,7 +48,7 @@ export function AutomationSuggestions({ suggestions, requests, onApply, showRequ
                 <span className={`priority priority-${suggestion.priority}`}>Приоритет: {priorityLabels[suggestion.priority]}</span>
               </div>
               {suggestion.action && suggestion.actionLabel && onApply && (
-                <button className="button secondary" type="button" onClick={() => applySuggestion(suggestion)}>{suggestion.actionLabel}</button>
+                <button className="button buttonSecondary" type="button" onClick={() => applySuggestion(suggestion)}>{suggestion.actionLabel}</button>
               )}
             </article>
           );

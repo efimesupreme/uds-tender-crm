@@ -34,10 +34,10 @@ export function RequestTable({ requests, tasks }: { requests: Request[]; tasks: 
               </td>
               <td>{request.customerName}</td>
               <td><StatusBadge status={request.currentStatus} /></td>
-              <td>{formatDateTime(request.submissionDeadlineAt)}</td>
+              <td className="dateCell">{formatDateTime(request.submissionDeadlineAt)}</td>
               <td>{request.nextActionText ?? <span className="dangerText">Нет следующего действия</span>}</td>
-              <td>{getUserName(request.ownerUserId)}</td>
-              <td>{formatMoney(request.offerAmount)}</td>
+              <td className="assigneeCell">{getUserName(request.ownerUserId)}</td>
+              <td className="moneyCell">{formatMoney(request.offerAmount)}</td>
               <td>{isFinalRequestStatus(request.currentStatus) ? (
                 <>
                   <strong>{statusLabels[request.currentStatus]}</strong>
