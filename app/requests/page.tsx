@@ -9,6 +9,7 @@ import { useCrmStore } from "@/lib/client-store";
 import { getRequestDetailsHref } from "@/lib/request-links";
 import { users } from "@/lib/mock-data";
 import { requestStatuses, statusLabels } from "@/lib/workflow";
+import type { RequestStatus } from "@/lib/types";
 import { isMyZoneRequest } from "@/lib/user-workspace";
 
 const emptyForm = {
@@ -29,6 +30,52 @@ const requiredFields: Array<[keyof typeof emptyForm, string]> = [
   ["sourceType", "Источник"],
 ];
 
+const quickStatusFilters = [
+  {
+    id: "requests",
+    label: "Заявки",
+    statuses: [
+      "new",
+      "participation_decision",
+      "not_participating",
+      "participation_approved",
+    ],
+  },
+  {
+    id: "appeal",
+    label: "Обращение",
+    statuses: [
+      "appeal_and_folder",
+      "materials_preparation",
+      "materials_received",
+      "internal_approval",
+      "costs_approved",
+    ],
+  },
+  {
+    id: "offer",
+    label: "КП",
+    statuses: [
+      "offer_preparation",
+      "owner_approval",
+      "ready_to_submit",
+      "submitted",
+      "feedback_waiting",
+      "won",
+      "lost",
+      "withdrawn_after_start",
+      "missed_deadline",
+      "canceled_or_paused",
+    ],
+  },
+] as const satisfies readonly {
+  id: string;
+  label: string;
+  statuses: readonly RequestStatus[];
+}[];
+
+type QuickStatusFilterId = (typeof quickStatusFilters)[number]["id"];
+
 function RequestsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -46,6 +93,9 @@ function RequestsPageContent() {
   const [status, setStatus] = useState("all");
   const [view, setView] = useState<"table" | "kanban">("table");
   const [zone, setZone] = useState<"all" | "mine">("all");
+  const [activeQuickFilters, setActiveQuickFilters] = useState<
+    QuickStatusFilterId[]
+  >([]);
   const [form, setForm] = useState(emptyForm);
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -58,7 +108,7 @@ function RequestsPageContent() {
     .filter(([key]) => !form[key].trim())
     .map(([, label]) => label);
 
-  const filteredRequests = useMemo(() => {
+  const baseFilteredRequests = useMemo(() => {
     return requests.filter((request) => {
       const matchesQuery =
         `${request.title} ${request.customerName} ${request.region}`
@@ -71,6 +121,42 @@ function RequestsPageContent() {
       return matchesQuery && matchesStatus && matchesZone;
     });
   }, [requests, tasks, query, status, zone, currentUserId]);
+
+  const selectedQuickStatuses = useMemo(() => {
+    return new Set(
+      quickStatusFilters
+        .filter((filter) => activeQuickFilters.includes(filter.id))
+        .flatMap((filter) => filter.statuses),
+    );
+  }, [activeQuickFilters]);
+
+  const filteredRequests = useMemo(() => {
+    if (selectedQuickStatuses.size === 0) return baseFilteredRequests;
+    return baseFilteredRequests.filter((request) =>
+      selectedQuickStatuses.has(request.currentStatus),
+    );
+  }, [baseFilteredRequests, selectedQuickStatuses]);
+
+  const quickFilterCounts = useMemo(() => {
+    return Object.fromEntries(
+      quickStatusFilters.map((filter) => [
+        filter.id,
+        baseFilteredRequests.filter((request) =>
+          (filter.statuses as readonly RequestStatus[]).includes(
+            request.currentStatus,
+          ),
+        ).length,
+      ]),
+    ) as Record<QuickStatusFilterId, number>;
+  }, [baseFilteredRequests]);
+
+  function toggleQuickFilter(filterId: QuickStatusFilterId) {
+    setActiveQuickFilters((current) =>
+      current.includes(filterId)
+        ? current.filter((item) => item !== filterId)
+        : [...current, filterId],
+    );
+  }
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -199,7 +285,11 @@ function RequestsPageContent() {
                 }
               />
               {submitted && !form.title.trim() && (
-                <span id="request-title-error" className="dangerText small">
+                <span
+                  id="request-title-error"
+                  className="dangerText small"
+                  role="alert"
+                >
                   Заполните поле «Наименование».
                 </span>
               )}
@@ -222,7 +312,11 @@ function RequestsPageContent() {
                 }
               />
               {submitted && !form.customerName.trim() && (
-                <span id="request-customer-error" className="dangerText small">
+                <span
+                  id="request-customer-error"
+                  className="dangerText small"
+                  role="alert"
+                >
                   Заполните поле «Заказчик».
                 </span>
               )}
@@ -243,7 +337,11 @@ function RequestsPageContent() {
                 }
               />
               {submitted && !form.region.trim() && (
-                <span id="request-region-error" className="dangerText small">
+                <span
+                  id="request-region-error"
+                  className="dangerText small"
+                  role="alert"
+                >
                   Заполните поле «Регион».
                 </span>
               )}
@@ -264,7 +362,11 @@ function RequestsPageContent() {
                 }
               />
               {submitted && !form.workType.trim() && (
-                <span id="request-work-type-error" className="dangerText small">
+                <span
+                  id="request-work-type-error"
+                  className="dangerText small"
+                  role="alert"
+                >
                   Заполните поле «Вид работ».
                 </span>
               )}
@@ -306,7 +408,11 @@ function RequestsPageContent() {
                 ))}
               </select>
               {submitted && !form.ownerUserId && (
-                <span id="request-owner-error" className="dangerText small">
+                <span
+                  id="request-owner-error"
+                  className="dangerText small"
+                  role="alert"
+                >
                   Выберите ответственного.
                 </span>
               )}
@@ -332,6 +438,7 @@ function RequestsPageContent() {
                 <span
                   id="request-source-type-error"
                   className="dangerText small"
+                  role="alert"
                 >
                   Заполните поле «Источник».
                 </span>
@@ -418,24 +525,50 @@ function RequestsPageContent() {
         </section>
       )}
 
-      <div
-        className="viewToggle"
-        aria-label="Переключатель представления заявок"
-      >
-        <button
-          className={`button ${view === "table" ? "" : "buttonSecondary"}`}
-          type="button"
-          onClick={() => setView("table")}
+      <div className="tableControls">
+        {view === "table" && (
+          <div
+            className="quickFilterChips"
+            aria-label="Быстрые фильтры по группам статусов"
+          >
+            {quickStatusFilters.map((filter) => {
+              const isActive = activeQuickFilters.includes(filter.id);
+              return (
+                <button
+                  key={filter.id}
+                  type="button"
+                  className={`filterChip${isActive ? " filterChipActive" : ""}`}
+                  aria-pressed={isActive}
+                  onClick={() => toggleQuickFilter(filter.id)}
+                >
+                  <span>{filter.label}</span>
+                  <span className="filterChipCount">
+                    {quickFilterCounts[filter.id]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <div
+          className="viewToggle"
+          aria-label="Переключатель представления заявок"
         >
-          Таблица
-        </button>
-        <button
-          className={`button ${view === "kanban" ? "" : "buttonSecondary"}`}
-          type="button"
-          onClick={() => setView("kanban")}
-        >
-          Канбан
-        </button>
+          <button
+            className={`button ${view === "table" ? "" : "buttonSecondary"}`}
+            type="button"
+            onClick={() => setView("table")}
+          >
+            Таблица
+          </button>
+          <button
+            className={`button ${view === "kanban" ? "" : "buttonSecondary"}`}
+            type="button"
+            onClick={() => setView("kanban")}
+          >
+            Канбан
+          </button>
+        </div>
       </div>
 
       {view === "table" ? (
