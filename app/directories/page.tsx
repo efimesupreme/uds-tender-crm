@@ -15,13 +15,7 @@ export default function DirectoriesPage() {
 
   return (
     <>
-      <header className="pageHeader">
-        <div>
-          <h1>Справочники</h1>
-          <p>Базовые списки MVP. Редактирование будет добавлено после подключения базы.</p>
-        </div>
-      <button className="button buttonDanger" type="button" onClick={resetDemoData}>Сбросить демо-данные</button>
-      </header>
+      <div className="toolbar"><button className="button buttonDanger" type="button" onClick={resetDemoData}>Сбросить демо-данные</button></div>
 
       <section className="sectionStack">
 

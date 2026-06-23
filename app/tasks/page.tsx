@@ -43,7 +43,6 @@ export default function TasksPage() {
 
   return (
     <>
-      <header className="pageHeader"><div><h1>Мои задачи</h1><p>Рабочий список задач по заявкам. Данные берутся из клиентского demo-store.</p></div></header>
       {message && <div className="alert" role="alert">{message}</div>}
       {isAdmin && <div className="inlineAlert" role="status">Режим администратора: показаны все задачи</div>}
       <div className="tableControls"><div className="quickFilterChips" aria-label="Фильтры задач по статусу">

@@ -61,10 +61,10 @@ export default function DashboardPage() {
           averageDuration: getAverageFunnelStageDuration(stage.statuses, filtered, statusHistory)
         };
       }),
-      portfolio: workTypeOptions.map((type) => {
+      portfolio: workTypeOptions.map((type, index) => {
         const typeRequests = kpRequests.filter((request) => request.workType === type);
         const amount = typeRequests.reduce((sum, request) => sum + (request.offerAmount ?? 0), 0);
-        return { type, count: typeRequests.length, amount, percent: offerSum > 0 ? Math.round((amount / offerSum) * 100) : 0 };
+        return { type, count: typeRequests.length, amount, percent: offerSum > 0 ? Math.round((amount / offerSum) * 100) : 0, color: ["#1f4e79", "#287f8f", "#6f8fb3", "#8f7aa8", "#bf8f45", "#8792a2"][index] };
       })
     };
   }, [kpOfferPlans, quarter, requests, statusHistory, workType, year]);
@@ -75,12 +75,6 @@ export default function DashboardPage() {
 
   return (
     <>
-      <header className="pageHeader">
-        <div>
-          <h1>Дашборд</h1>
-          <p>Управленческий вид CRM-воронки: КП, план/факт, договоры и структура портфеля.</p>
-        </div>
-      </header>
 
       <section className="filterBar dashboardFilters" aria-label="Фильтры дашборда">
         <label className="formField">Год<select className="select" value={year} onChange={(event) => setYear(Number(event.target.value))}>{PLAN_YEARS.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
@@ -96,7 +90,7 @@ export default function DashboardPage() {
         <div className="card statCard"><div className="metric">{HISTORICAL_CONTRACT_CONVERSION}%</div><div className="metricLabel">Историческая конверсия · исторический ориентир</div></div>
       </section>
 
-      <section className="gridTwo dashboardAnalytics">
+      <section className="dashboardAnalyticsRow">
         <div className="card planFactCard">
           <div className="sectionHeader"><div><h2>План / факт по сумме КП</h2><p>Факт КП привязан к дате подготовки КП, затем к дате подачи, затем к дате создания заявки.</p></div></div>
         <div className="planFactGrid">
@@ -118,8 +112,8 @@ export default function DashboardPage() {
         <div className="card funnelCard">
           <div className="sectionHeader"><div><h2>Воронка продаж</h2><p>Средние сроки этапов встроены в ступени воронки.</p></div></div>
           <div className="funnelDiagram">
-            {dashboard.funnel.map((stage) => (
-              <div className="funnelStep" key={stage.id} style={{ width: `${stage.width}%` }}>
+            {dashboard.funnel.map((stage, index) => (
+              <div className="funnelStep" key={stage.id} style={{ width: `${Math.max(44, stage.width)}%`, transform: `translateX(${index % 2 === 0 ? 0 : 1}px)` }}>
                 <div className="funnelStepMain"><strong>{stage.title}</strong><span>{stage.count} заявок · {stage.percent}%</span></div>
                 <div className="funnelStepMeta">срок {stage.averageDuration.text} · {getStatusListText(stage.statuses)}</div>
               </div>
@@ -127,24 +121,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
-      </section>
 
-      <section className="card portfolioCard">
+        <div className="card portfolioCard">
         <div className="sectionHeader"><div><h2>Структура портфеля</h2><p>КП-контур по типам работ и сумме КП.</p></div></div>
         <div className="portfolioDashboard">
-          <div className="portfolioDonut" aria-label={`Общая сумма КП ${formatMoney(dashboard.offerSum)}`}>
+          <div className="portfolioDonut" style={{ background: `conic-gradient(${dashboard.portfolio.reduce((acc, item) => { const start = acc.total; const end = start + item.percent; acc.parts.push(`${item.color} ${start}% ${end}%`); acc.total = end; return acc; }, { total: 0, parts: [] as string[] }).parts.join(", ") || "#d7dee8 0 100%"})` }} aria-label={`Общая сумма КП ${formatMoney(dashboard.offerSum)}`}>
             <div><span>Сумма КП</span><strong>{formatMoney(dashboard.offerSum)}</strong></div>
           </div>
           <div className="portfolioLegend">
             {dashboard.portfolio.map((item) => (
               <div className="portfolioLegendRow" key={item.type}>
-                <span className="portfolioDot" />
-                <strong>{item.type}</strong>
-                <span>{item.count} КП</span>
-                <b>{item.percent}% денег</b>
+                <span className="portfolioDot" style={{ background: item.color }} />
+                <strong>{item.type} — {item.percent}% · {item.count} КП</strong>
+                <span>{formatMoney(item.amount)}</span>
               </div>
             ))}
           </div>
+        </div>
         </div>
       </section>
     </>

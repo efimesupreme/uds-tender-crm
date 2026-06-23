@@ -377,3 +377,37 @@ textarea.input { min-height: 92px; resize: vertical; }
   .portfolioDonut { width: min(220px, 100%); height: min(220px, 70vw); justify-self: center; }
   .portfolioLegendRow { grid-template-columns: auto minmax(0, 1fr); }
 }
+
+.appTopBarHeading { min-width: 0; display: grid; gap: 2px; }
+.appTopBarDescription { overflow: hidden; color: var(--color-text-muted); font-size: 12px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.requestPageActions { justify-content: flex-end; }
+.dashboardAnalyticsRow { display: grid; grid-template-columns: minmax(420px, 1.35fr) minmax(260px, .82fr) minmax(260px, .88fr); gap: 12px; align-items: stretch; margin-bottom: 12px; }
+.dashboardAnalyticsRow .card { min-width: 0; }
+.dashboardAnalyticsRow .sectionHeader h2 { font-size: 16px; }
+.dashboardAnalyticsRow .sectionHeader p { font-size: 12px; line-height: 1.35; }
+.dashboardAnalyticsRow .planFactGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+.dashboardAnalyticsRow .planFactItem { padding: 8px; }
+.dashboardAnalyticsRow .barPair { height: 96px; margin: 4px 0; }
+.funnelCard .funnelDiagram { gap: 6px; }
+.funnelCard .funnelStep { position: relative; min-width: 44%; padding: 7px 10px; border-radius: 8px; clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%); }
+.funnelCard .funnelStepMain { align-items: baseline; font-size: 12px; }
+.funnelCard .funnelStepMain span { white-space: nowrap; font-weight: 850; }
+.funnelCard .funnelStepMeta { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.dashboardAnalyticsRow .portfolioCard { max-width: none; }
+.dashboardAnalyticsRow .portfolioDashboard { grid-template-columns: 1fr; gap: 10px; justify-items: center; }
+.dashboardAnalyticsRow .portfolioDonut { width: 150px; height: 150px; }
+.dashboardAnalyticsRow .portfolioDonut > div { width: 92px; height: 92px; padding: 10px; }
+.dashboardAnalyticsRow .portfolioDonut strong { font-size: 14px; }
+.dashboardAnalyticsRow .portfolioLegend { width: 100%; gap: 6px; }
+.dashboardAnalyticsRow .portfolioLegendRow { grid-template-columns: auto minmax(0, 1fr) auto; padding: 7px 8px; gap: 7px; font-size: 12px; }
+.dashboardAnalyticsRow .portfolioLegendRow strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 768px) and (max-width: 1180px) {
+  .dashboardAnalyticsRow { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); }
+  .dashboardAnalyticsRow .portfolioCard { grid-column: 1 / -1; }
+}
+@media (max-width: 767px) {
+  .appTopBarHeading { flex: 1; }
+  .appTopBarDescription { font-size: 11px; }
+  .dashboardAnalyticsRow { grid-template-columns: 1fr; }
+  .dashboardAnalyticsRow .planFactGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

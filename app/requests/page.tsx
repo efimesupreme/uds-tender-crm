@@ -211,11 +211,7 @@ function RequestsPageContent() {
 
   return (
     <>
-      <header className="pageHeader">
-        <div>
-          <h1>Заявки</h1>
-          <p>Реестр тендеров и входящих коммерческих обращений.</p>
-        </div>
+      <div className="toolbar requestPageActions">
         <div className="headerActions">
           <button
             className="button"
@@ -236,7 +232,7 @@ function RequestsPageContent() {
             Сбросить демо-данные
           </button>
         </div>
-      </header>
+      </div>
 
       {message && (
         <div className="alert" role="alert">

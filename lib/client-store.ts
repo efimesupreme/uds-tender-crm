@@ -492,29 +492,83 @@ export function useCrmStore() {
       const duration = start ? Math.max(0, Math.round((new Date(at).getTime() - new Date(start).getTime()) / 60000)) : null;
       const nextTasks: RequestTask[] = [];
       const eventsToAdd: RequestEvent[] = [createEvent({ requestId: task.requestId, taskId, eventType: "task_completed", actorUserId, comment: "Задача выполнена" }, at)];
-      const addTask = (taskType: TaskType, comment: string) => {
-        if (current.tasks.some((item) => item.requestId === task.requestId && item.taskType === taskType && item.status !== "completed") || nextTasks.some((item) => item.taskType === taskType)) return;
-        const created: RequestTask = { id: generateTaskId(), requestId: task.requestId, title: taskTypeLabels[taskType], taskType, status: "new", createdBy: actorUserId, assigneeUserId: getDefaultTaskAssigneeUserId(taskType, actorUserId), createdAt: at, returnedCount: 0, comment };
+      const taskExists = (taskType: TaskType) => current.tasks.some((item) => item.requestId === task.requestId && item.taskType === taskType) || nextTasks.some((item) => item.taskType === taskType);
+      const addTask = (taskType: TaskType, comment: string, assigneeUserId = getDefaultTaskAssigneeUserId(taskType, actorUserId)) => {
+        if (taskExists(taskType)) return false;
+        const created: RequestTask = { id: generateTaskId(), requestId: task.requestId, title: taskTypeLabels[taskType], taskType, status: "new", createdBy: actorUserId, assigneeUserId, createdAt: at, returnedCount: 0, comment };
         nextTasks.push(created);
-        eventsToAdd.push(createEvent({ requestId: task.requestId, taskId: created.id, eventType: "task_created", actorUserId, comment: created.title }, at));
+        eventsToAdd.push(createEvent({ requestId: task.requestId, taskId: created.id, eventType: "task_created", actorUserId, comment }, at));
+        return true;
       };
+      const addWorkflowEvent = (eventType: string, comment: string) => eventsToAdd.push(createEvent({ requestId: task.requestId, taskId, eventType, actorUserId, comment }, at));
+      const allExist = (types: TaskType[]) => types.every(taskExists);
       const patch: Partial<Request> = {};
       const warn = (text: string) => messages.push(text);
-      if (task.taskType === "participation_decision" && request.participationDecision === "pending") warn("Заполните решение об участии в карточке заявки");
-      if (task.taskType === "create_appeal" && (!request.appealNumber || !request.workingFolderUrl)) warn("Заполните номер обращения и ссылку на рабочую папку");
-      if (task.taskType === "approve_costs") request.costsStatus === "approved" ? addTask("prepare_offer", "Затраты утверждены, подготовьте КП") : warn("Утвердите затраты в карточке заявки");
-      if (task.taskType === "contract_review") addTask("prepare_protocol", "Подготовьте протокол разногласий при необходимости");
-      if (task.taskType === "prepare_protocol") eventsToAdd.push(createEvent({ requestId: task.requestId, taskId, eventType: "contract_part_prepared", actorUserId, comment: "Договорная часть подготовлена" }, at));
-      if (task.taskType === "collect_documents" && request.documentsStatus !== "ready") warn("Отметьте готовность документов в карточке заявки");
-      if (task.taskType === "prepare_offer") request.offerStatus === "ready" ? addTask("owner_approval", "КП готово, согласуйте с МЛ") : warn("Отметьте готовность КП в карточке заявки");
-      if (task.taskType === "owner_approval") request.offerStatus === "approved" ? addTask("submit_offer", "КП согласовано, подайте его заказчику") : warn("Отметьте согласование КП с МЛ в карточке заявки");
+      const createdMessage = (text: string) => { messages = [text]; };
+
+      if (task.taskType === "participation_decision") {
+        if (addTask("create_appeal", "После согласования участия создана задача “Завести обращение”", "u-denis")) {
+          addWorkflowEvent("workflow_next_task_created", "После согласования участия создана задача “Завести обращение”");
+          createdMessage("Задача выполнена. Создана следующая задача: Завести обращение");
+        } else createdMessage("Задача выполнена. Следующая задача уже была создана ранее");
+      }
+      if (task.taskType === "create_appeal") {
+        const created = [
+          addTask("approve_costs", "Запущена подготовка материалов: затраты", "u-denis"),
+          addTask("contract_review", "Запущена подготовка материалов: договор", "u-denis"),
+          addTask("collect_documents", "Запущена подготовка материалов: документы", "u-katya"),
+        ].some(Boolean);
+        addWorkflowEvent("materials_preparation_started", "Запущена подготовка материалов: затраты, договор, документы");
+        createdMessage(created ? "Задача выполнена. Запущена подготовка материалов: затраты, договор, документы" : "Задача выполнена. Следующие задачи уже были созданы ранее");
+      }
+      if (task.taskType === "approve_costs") {
+        if (addTask("prepare_offer", "Затраты утверждены, подготовьте КП", "u-katya")) createdMessage("Задача выполнена. Создана задача: Подготовить КП");
+        else createdMessage("Задача выполнена. Следующая задача уже была создана ранее");
+        if (request.costsStatus !== "approved" || !request.costAmount) {
+          const warning = "Предупреждение: данных по затратам недостаточно для полноценного перехода статуса";
+          warn(warning);
+          addWorkflowEvent("workflow_warning", warning);
+        }
+      }
+      if (task.taskType === "contract_review") {
+        if (addTask("prepare_protocol", "После анализа договора подготовьте протокол разногласий", "u-denis")) createdMessage("Задача выполнена. Создана задача: Подготовить протокол разногласий");
+        else createdMessage("Задача выполнена. Следующая задача уже была создана ранее");
+      }
+      if (task.taskType === "prepare_protocol") {
+        addWorkflowEvent("contract_part_prepared", "Договорная часть подготовлена");
+        createdMessage(allExist(["approve_costs", "collect_documents", "prepare_offer"]) ? "Задача выполнена. Договорная часть подготовлена, материалы готовы к КП" : "Задача выполнена. Договорная часть подготовлена");
+      }
+      if (task.taskType === "collect_documents") {
+        addWorkflowEvent("documents_prepared", "Комплект документов подготовлен");
+        createdMessage(allExist(["approve_costs", "prepare_protocol", "prepare_offer"]) ? "Задача выполнена. Комплект документов подготовлен, материалы готовы к КП" : "Задача выполнена. Комплект документов подготовлен");
+      }
+      if (task.taskType === "prepare_offer") {
+        if (addTask("owner_approval", "КП подготовлено, согласуйте КП с МЛ", "u-katya")) createdMessage("Задача выполнена. Создана задача: Согласовать КП с МЛ");
+        else createdMessage("Задача выполнена. Следующая задача уже была создана ранее");
+      }
+      if (task.taskType === "owner_approval") {
+        if (addTask("submit_offer", "КП согласовано, подайте КП", "u-katya")) createdMessage("Задача выполнена. Создана задача: Подать КП");
+        else createdMessage("Задача выполнена. Следующая задача уже была создана ранее");
+      }
       if (task.taskType === "submit_offer") {
-        if (!request.submissionSubmittedAt) warn("Заполните дату подачи КП в карточке заявки");
-        else if (canTransitionRequest(request.currentStatus, "submitted")) { const guard = validateRequestTransition(request, current.tasks, request.currentStatus, "submitted"); guard.allowed ? (patch.currentStatus = "submitted") : warn(`Переход запрещён: ${guard.errors.join(", ")}`); }
+        if (canTransitionRequest(request.currentStatus, "submitted")) {
+          const guard = validateRequestTransition(request, current.tasks, request.currentStatus, "submitted");
+          if (guard.allowed) {
+            patch.currentStatus = "submitted";
+            createdMessage("Задача выполнена. КП подано, статус заявки обновлён");
+          } else {
+            warn(`Предупреждение: переход в статус «КП подано» невозможен: ${guard.errors.join(", ")}`);
+            addWorkflowEvent("offer_submitted", "КП подано, но статус заявки не изменён из-за ограничений данных");
+          }
+        } else {
+          addWorkflowEvent("offer_submitted", "КП подано");
+          createdMessage("Задача выполнена. Зафиксирована подача КП");
+        }
       }
       return {
         ...current,
         requests: Object.keys(patch).length ? updateRequestById(current.requests, task.requestId, (item) => ({ ...item, ...patch })) : current.requests,
+        statusHistory: patch.currentStatus ? [createStatusHistoryItem({ requestId: task.requestId, fromStatus: request.currentStatus, toStatus: patch.currentStatus, changedBy: actorUserId, comment: "КП подано по workflow" }, at), ...current.statusHistory] : current.statusHistory,
         tasks: [...nextTasks, ...updateTaskById(current.tasks, taskId, (item) => ({ ...item, status: "completed", completedAt: at, actualDurationMinutes: duration, resultText: "Выполнено" }))],
         events: [...eventsToAdd, ...current.events]
       };
