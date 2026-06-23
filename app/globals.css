@@ -288,3 +288,89 @@ textarea.input { min-height: 92px; resize: vertical; }
   .funnelMeta, .portfolioTop { display: grid; gap: 4px; }
   .funnelMeta span, .portfolioTop span { text-align: left; }
 }
+
+/* Compact shell polish */
+:root {
+  --sidebar-width: 148px;
+  --topbar-height: 58px;
+  --content-max-width: 1540px;
+  --table-cell-y: 9px;
+}
+
+.appShell { align-items: stretch; background: linear-gradient(90deg, #102033 0 var(--sidebar-width), var(--color-bg) var(--sidebar-width)); }
+.sidebar { position: sticky; top: 0; z-index: 15; height: 100vh; padding: 16px 10px; }
+.brand { display: grid; gap: 8px; margin-bottom: 18px; padding: 4px; }
+.brandMark { width: 34px; height: 34px; border-radius: 10px; }
+.brand strong { font-size: 12px; line-height: 1.15; }
+.brand span { font-size: 10px; line-height: 1.25; }
+.navList { gap: 4px; }
+.navLink { min-height: 36px; padding: 8px 9px; font-size: 13px; }
+.main { max-width: var(--content-max-width); padding: calc(var(--topbar-height) + 16px) 22px 30px; }
+.appTopBar { position: fixed; top: 0; right: 0; left: var(--sidebar-width); z-index: 30; display: flex; min-height: var(--topbar-height); align-items: center; justify-content: space-between; gap: 16px; padding: 8px 22px; border-bottom: 1px solid var(--color-border); background: rgba(248, 250, 252, .94); backdrop-filter: blur(12px); box-shadow: 0 8px 20px rgba(16, 24, 40, .06); }
+.appTopBarTitle { min-width: 0; font-size: 18px; font-weight: 850; letter-spacing: -.03em; }
+.appTopBarRight { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 12px; }
+.pageActions { display: flex; align-items: center; gap: 8px; }
+.appTopBar .userSwitcher { margin: 0; min-width: 220px; }
+.appTopBar .userSwitcher .formField { gap: 3px; color: var(--color-text-muted); font-size: 11px; }
+.appTopBar .select { min-height: 34px; padding-block: 6px; }
+.topBar { display: none; }
+.pageHeader { margin-bottom: 16px; gap: 16px; }
+.pageHeader h1 { margin-bottom: 4px; font-size: 24px; }
+.cardGrid { gap: 10px; margin-bottom: 12px; }
+.card { padding: 14px; border-radius: var(--radius-lg); }
+.card h2, .card h3 { margin-bottom: 10px; }
+.sectionHeader { margin-bottom: 10px; }
+.filterBar, .toolbar { margin-bottom: 12px; padding: 10px; }
+.button { min-height: 36px; padding: 7px 12px; }
+.input, .select, textarea.input { min-height: 36px; padding: 7px 10px; }
+.metric { font-size: 25px; }
+.metricLabel { margin-top: 6px; }
+.dashboardKpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.dashboardKpis .statCard { min-height: 96px; display: flex; flex-direction: column; justify-content: space-between; }
+.dashboardAnalytics { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; margin-bottom: 12px; }
+.planFactGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.planFactItem { padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-secondary); }
+.barPair { display: flex; height: 118px; align-items: end; justify-content: center; gap: 8px; margin: 8px 0; }
+.planBar, .factBar { width: 18px; border-radius: 7px 7px 0 0; display: block; }
+.planBar { background: #b9c7d6; }
+.factBar { background: var(--color-accent); }
+.funnelDiagram { display: grid; justify-items: center; gap: 7px; padding-top: 2px; }
+.funnelStep { min-width: 42%; max-width: 100%; border-radius: 10px; padding: 8px 12px; background: linear-gradient(90deg, #1f4e79, #3d78a5); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.18); transition: width .15s ease; }
+.funnelStepMain { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.funnelStepMeta { margin-top: 3px; color: rgba(255,255,255,.78); font-size: 11px; line-height: 1.3; }
+.portfolioCard { max-width: 980px; }
+.portfolioDashboard { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; align-items: center; }
+.portfolioDonut { display: grid; width: 220px; height: 220px; place-items: center; border-radius: 50%; background: conic-gradient(#1f4e79 0 35%, #79a7c7 35% 58%, #9fc3da 58% 78%, #c9ddeb 78% 100%); }
+.portfolioDonut > div { display: grid; width: 132px; height: 132px; place-items: center; border-radius: 50%; padding: 16px; background: var(--color-surface); text-align: center; box-shadow: inset 0 0 0 1px var(--color-border); }
+.portfolioDonut span { color: var(--color-text-muted); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.portfolioDonut strong { font-size: 18px; line-height: 1.1; }
+.portfolioLegend { display: grid; gap: 8px; }
+.portfolioLegendRow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 9px; align-items: center; padding: 9px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-secondary); font-size: 13px; }
+.portfolioDot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-accent); }
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root { --sidebar-width: 136px; }
+  .appShell { grid-template-columns: var(--sidebar-width) minmax(0, 1fr); background: linear-gradient(90deg, #102033 0 var(--sidebar-width), var(--color-bg) var(--sidebar-width)); }
+  .main { padding: calc(var(--topbar-height) + 14px) 16px 26px; }
+  .appTopBar { left: var(--sidebar-width); padding-inline: 16px; }
+  .dashboardKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboardAnalytics, .portfolioDashboard { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 767px) {
+  .appShell { background: var(--color-bg); }
+  .main { padding-top: calc(var(--topbar-height) + 12px); }
+  .appTopBar { left: 0; min-height: var(--topbar-height); padding: 7px 12px; gap: 8px; }
+  .appTopBarTitle { font-size: 16px; }
+  .appTopBarRight { gap: 8px; flex: 1; }
+  .pageActions { display: none; }
+  .appTopBar .userSwitcher { min-width: 0; flex: 1; }
+  .appTopBar .userSwitcher .formField { font-size: 10px; }
+  .appTopBar .select { min-height: 36px; font-size: 13px; }
+  .dashboardKpis { grid-template-columns: 1fr; }
+  .dashboardAnalytics, .portfolioDashboard { grid-template-columns: 1fr; }
+  .planFactGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .portfolioCard { max-width: none; }
+  .portfolioDonut { width: min(220px, 100%); height: min(220px, 70vw); justify-self: center; }
+  .portfolioLegendRow { grid-template-columns: auto minmax(0, 1fr); }
+}
