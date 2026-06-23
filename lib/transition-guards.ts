@@ -1,4 +1,4 @@
-import type { Request, RequestStatus, RequestTask } from "./types";
+import type { Request, RequestStatus, RequestTask, SourceType, WorkType } from "./types";
 import { canTransitionRequest, isFinalRequestStatus, taskTypeLabels, type TaskType } from "./workflow";
 
 export type TransitionRequirement = { id: string; label: string; required: boolean; met: boolean };
@@ -90,7 +90,7 @@ function requirementsFor(request: Request, tasks: RequestTask[], toStatus: Reque
 
 export function getTransitionRequirements(fromStatus: RequestStatus, toStatus: RequestStatus): TransitionRequirement[] {
   if (!canTransitionRequest(fromStatus, toStatus) || isFinalRequestStatus(toStatus)) return [];
-  return requirementsFor({ id: "", internalNumber: "", title: "", customerName: "", region: "", sourceType: "", requestType: "", workType: "", currentStatus: fromStatus, participationDecision: "pending", ownerUserId: "", resultStatus: "none", createdAt: "" }, [], toStatus);
+  return requirementsFor({ id: "", internalNumber: "", title: "", customerName: "", region: "", sourceType: "" as SourceType, requestType: "", workType: "" as WorkType, currentStatus: fromStatus, participationDecision: "pending", ownerUserId: "", resultStatus: "none", createdAt: "" }, [], toStatus);
 }
 
 export function getMissingRequiredFields(request: Request, toStatus: RequestStatus, tasks: RequestTask[] = []): string[] {

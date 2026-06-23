@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { events, fileLinks, requests, statusHistory, tasks } from "./mock-data";
-import type { ContractAnalysisStatus, CostsStatus, DocumentsStatus, FeedbackStatus, FileLink, OfferStatus, ParticipationDecision, ProtocolStatus, Request, RequestEvent, RequestResult, RequestStatus, RequestTask, StatusHistoryItem, TaskStatus } from "./types";
+import type { ContractAnalysisStatus, CostsStatus, DocumentsStatus, FeedbackStatus, FileLink, OfferStatus, ParticipationDecision, ProtocolStatus, Request, RequestEvent, RequestResult, RequestStatus, RequestTask, SourceType, StatusHistoryItem, TaskStatus, WorkType } from "./types";
 import { hasActiveTask, type AutomationAction } from "./process-automation";
 import { validateRequestTransition, type TransitionValidationResult } from "./transition-guards";
 import { canTransitionRequest, createDefaultTasksForApprovedRequest, getDefaultTaskAssigneeUserId, isFinalRequestStatus, taskTypeLabels, type TaskType } from "./workflow";
@@ -26,10 +26,10 @@ type CreateRequestInput = {
   title: string;
   customerName: string;
   region: string;
-  workType: string;
+  workType: WorkType;
   submissionDeadlineAt?: string;
   ownerUserId: string;
-  sourceType: string;
+  sourceType: SourceType;
   sourceCustomValue?: string;
 };
 

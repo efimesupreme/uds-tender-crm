@@ -312,9 +312,9 @@ export const requests: Request[] = [
 ];
 
 export const tasks: RequestTask[] = [
-  { id: "t-007-1", requestId: "r-007", title: "Подготовить затраты", taskType: "prepare_costs", status: "new", createdBy: "u-denis", returnedCount: 0 },
-  { id: "t-007-2", requestId: "r-007", title: "Проанализировать договор", taskType: "contract_review", status: "new", createdBy: "u-denis", returnedCount: 0 },
-  { id: "t-007-3", requestId: "r-007", title: "Собрать комплект документов", taskType: "collect_documents", status: "new", createdBy: "u-denis", returnedCount: 0 },
+  { id: "t-007-1", requestId: "r-007", title: "Подготовить затраты", taskType: "prepare_costs", status: "new", createdBy: "u-denis", assigneeUserId: "u-denis", createdAt: "2026-06-22T09:35:00+03:00", returnedCount: 0 },
+  { id: "t-007-2", requestId: "r-007", title: "Проанализировать договор", taskType: "contract_review", status: "new", createdBy: "u-denis", assigneeUserId: "u-denis", createdAt: "2026-06-22T09:36:00+03:00", returnedCount: 0 },
+  { id: "t-007-3", requestId: "r-007", title: "Собрать комплект документов", taskType: "collect_documents", status: "new", createdBy: "u-denis", assigneeUserId: "u-katya", createdAt: "2026-06-22T09:37:00+03:00", returnedCount: 0 },
   {
     id: "t-001",
     requestId: "r-001",
