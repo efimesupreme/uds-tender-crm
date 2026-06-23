@@ -8,7 +8,7 @@ import { RequestTable } from "@/components/RequestTable";
 import { useCrmStore } from "@/lib/client-store";
 import { getRequestDetailsHref } from "@/lib/request-links";
 import { users } from "@/lib/mock-data";
-import { requestStatuses, statusLabels } from "@/lib/workflow";
+import { CUSTOM_SOURCE_TYPE, requestStatuses, sourceTypeOptions, statusLabels, workTypeOptions } from "@/lib/workflow";
 import type { RequestStatus } from "@/lib/types";
 import { isMyZoneRequest } from "@/lib/user-workspace";
 
@@ -20,6 +20,7 @@ const emptyForm = {
   submissionDeadlineAt: "",
   ownerUserId: "u-denis",
   sourceType: "",
+  sourceCustomValue: "",
 };
 const requiredFields: Array<[keyof typeof emptyForm, string]> = [
   ["title", "Наименование"],
@@ -107,6 +108,7 @@ function RequestsPageContent() {
   const missingFields = requiredFields
     .filter(([key]) => !form[key].trim())
     .map(([, label]) => label);
+  const sourceCustomMissing = form.sourceType === CUSTOM_SOURCE_TYPE && !form.sourceCustomValue.trim();
 
   const baseFilteredRequests = useMemo(() => {
     return requests.filter((request) => {
@@ -161,7 +163,7 @@ function RequestsPageContent() {
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     setSubmitted(true);
-    if (missingFields.length > 0) {
+    if (missingFields.length > 0 || sourceCustomMissing) {
       setMessage("Заполните обязательные поля");
       return;
     }
@@ -173,6 +175,7 @@ function RequestsPageContent() {
         region: form.region.trim(),
         workType: form.workType.trim(),
         sourceType: form.sourceType.trim(),
+        sourceCustomValue: form.sourceType === CUSTOM_SOURCE_TYPE ? form.sourceCustomValue.trim() : undefined,
       },
       currentUserId,
     );
@@ -348,19 +351,18 @@ function RequestsPageContent() {
             </label>
             <label className="formField" htmlFor="request-work-type">
               Вид работ *
-              <input
+              <select
                 id="request-work-type"
                 name="workType"
-                className={fieldClass("workType")}
+                className={`select${submitted && !form.workType.trim() ? " inputError" : ""}`}
                 value={form.workType}
                 onChange={(e) => setForm({ ...form, workType: e.target.value })}
                 aria-invalid={submitted && !form.workType.trim()}
-                aria-describedby={
-                  submitted && !form.workType.trim()
-                    ? "request-work-type-error"
-                    : undefined
-                }
-              />
+                aria-describedby={submitted && !form.workType.trim() ? "request-work-type-error" : undefined}
+              >
+                <option value="">Выберите вид работ</option>
+                {workTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
               {submitted && !form.workType.trim() && (
                 <span
                   id="request-work-type-error"
@@ -419,21 +421,19 @@ function RequestsPageContent() {
             </label>
             <label className="formField" htmlFor="request-source-type">
               Источник *
-              <input
+              <select
                 id="request-source-type"
                 name="sourceType"
-                className={fieldClass("sourceType")}
+                className={`select${submitted && !form.sourceType.trim() ? " inputError" : ""}`}
                 value={form.sourceType}
-                onChange={(e) =>
-                  setForm({ ...form, sourceType: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, sourceType: e.target.value, sourceCustomValue: e.target.value === CUSTOM_SOURCE_TYPE ? form.sourceCustomValue : "" })}
                 aria-invalid={submitted && !form.sourceType.trim()}
-                aria-describedby={
-                  submitted && !form.sourceType.trim()
-                    ? "request-source-type-error"
-                    : undefined
-                }
-              />
+                aria-describedby={submitted && !form.sourceType.trim() ? "request-source-type-error" : undefined}
+              >
+                <option value="">Выберите источник</option>
+                {sourceTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                <option value={CUSTOM_SOURCE_TYPE}>{CUSTOM_SOURCE_TYPE}</option>
+              </select>
               {submitted && !form.sourceType.trim() && (
                 <span
                   id="request-source-type-error"
@@ -444,6 +444,22 @@ function RequestsPageContent() {
                 </span>
               )}
             </label>
+            {form.sourceType === CUSTOM_SOURCE_TYPE && (
+              <label className="formField" htmlFor="request-source-custom">
+                Свободный источник *
+                <input
+                  id="request-source-custom"
+                  name="sourceCustomValue"
+                  className={`input${submitted && sourceCustomMissing ? " inputError" : ""}`}
+                  value={form.sourceCustomValue}
+                  onChange={(e) => setForm({ ...form, sourceCustomValue: e.target.value })}
+                  aria-invalid={submitted && sourceCustomMissing}
+                  aria-describedby={submitted && sourceCustomMissing ? "request-source-custom-error" : "request-source-custom-help"}
+                />
+                <span id="request-source-custom-help" className="small muted">Например, имя сотрудника компании.</span>
+                {submitted && sourceCustomMissing && <span id="request-source-custom-error" className="dangerText small" role="alert">Заполните свободный источник.</span>}
+              </label>
+            )}
             <div className="formActions">
               <button className="button" type="submit">
                 Создать заявку

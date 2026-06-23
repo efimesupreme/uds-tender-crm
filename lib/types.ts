@@ -52,6 +52,7 @@ export type Request = {
   customerName: string;
   region: string;
   sourceType: string;
+  sourceCustomValue?: string;
   sourceUrl?: string;
   requestType: string;
   workType: string;
@@ -124,7 +125,7 @@ export type Request = {
   createdAt: string;
 };
 
-export type TaskStatus = "new" | "in_progress" | "waiting" | "completed" | "returned" | "accepted" | "canceled";
+export type TaskStatus = "new" | "in_progress" | "completed";
 
 export type RequestTask = {
   id: string;
@@ -137,6 +138,8 @@ export type RequestTask = {
   assigneeExternalId?: string;
   plannedDueAt?: string;
   completedAt?: string;
+  startedAt?: string;
+  actualDurationMinutes?: number | null;
   createdAt?: string;
   returnedCount: number;
   resultText?: string;

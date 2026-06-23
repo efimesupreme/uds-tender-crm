@@ -1,53 +1,76 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { TaskList } from "@/components/TaskList";
 import { useCrmStore } from "@/lib/client-store";
-import { isTaskOverdue } from "@/lib/workflow";
+import type { RequestTask, TaskStatus } from "@/lib/types";
+import { formatDateTime, getAssigneeName } from "@/lib/utils";
+import { taskTypeLabels } from "@/lib/workflow";
 import { isMyTask, isMyZoneRequest, DENIS_USER_ID } from "@/lib/user-workspace";
 
+const statusFilters: Array<{ id: TaskStatus; label: string }> = [
+  { id: "new", label: "Новые" },
+  { id: "in_progress", label: "В работе" },
+  { id: "completed", label: "Выполнено" },
+];
+
 export default function TasksPage() {
-  const { requests, tasks, currentUserId } = useCrmStore();
+  const { requests, tasks, currentUserId, updateTaskAssignee, completeTaskWithEffects } = useCrmStore();
+  const [activeStatuses, setActiveStatuses] = useState<TaskStatus[]>([]);
+  const [confirmTask, setConfirmTask] = useState<RequestTask | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
   const myTasks = tasks.filter((task) => isMyTask(task, currentUserId));
   const denisProblemTasks = currentUserId === DENIS_USER_ID
     ? requests.filter((request) => isMyZoneRequest(request, tasks, currentUserId)).map((request) => ({ id: `focus-${request.id}`, requestId: request.id, title: `Управленческое действие: ${request.title}`, taskType: "record_result" as const, status: "new" as const, createdBy: "u-denis", assigneeUserId: "u-denis", plannedDueAt: request.nextActionDueAt ?? request.submissionDeadlineAt, returnedCount: 0, comment: request.nextActionText ?? "Проверьте проблему по заявке" }))
     : [];
   const visibleTasks = [...myTasks, ...denisProblemTasks];
-  const overdueTasks = visibleTasks.filter((task) => isTaskOverdue(task));
-  const pendingAcceptanceTasks = visibleTasks.filter((task) => task.status === "completed");
-  const todayTasks = visibleTasks.filter((task) => task.status !== "completed" && task.status !== "accepted" && task.status !== "canceled" && !isTaskOverdue(task));
+  const filteredTasks = activeStatuses.length === 0 ? visibleTasks : visibleTasks.filter((task) => activeStatuses.includes(task.status));
+  const groups = useMemo(() => ({
+    new: filteredTasks.filter((task) => task.status === "new"),
+    in_progress: filteredTasks.filter((task) => task.status === "in_progress"),
+    completed: filteredTasks.filter((task) => task.status === "completed"),
+  }), [filteredTasks]);
+  const counts = Object.fromEntries(statusFilters.map((filter) => [filter.id, visibleTasks.filter((task) => task.status === filter.id).length])) as Record<TaskStatus, number>;
+
+  function toggleStatus(status: TaskStatus) {
+    setActiveStatuses((current) => current.includes(status) ? current.filter((item) => item !== status) : [...current, status]);
+  }
+  function confirmComplete() {
+    if (!confirmTask) return;
+    const result = completeTaskWithEffects(confirmTask.id, currentUserId);
+    setMessage(result.join(". "));
+    setConfirmTask(null);
+  }
+  const request = confirmTask ? requests.find((item) => item.id === confirmTask.requestId) : undefined;
 
   return (
     <>
-      <header className="pageHeader">
-        <div>
-          <h1>Мои задачи</h1>
-          <p>Рабочий список задач по заявкам. Данные берутся из клиентского demo-store.</p>
-        </div>
-      </header>
-
+      <header className="pageHeader"><div><h1>Мои задачи</h1><p>Рабочий список задач по заявкам. Данные берутся из клиентского demo-store.</p></div></header>
+      {message && <div className="alert" role="alert">{message}</div>}
       <section className="cardGrid">
-        <div className="card statCard"><div className="metric">{overdueTasks.length}</div><div className="metricLabel">просрочено</div></div>
-        <div className="card statCard"><div className="metric">{todayTasks.length}</div><div className="metricLabel">активные</div></div>
-        <div className="card statCard"><div className="metric">{pendingAcceptanceTasks.length}</div><div className="metricLabel">ожидают принятия</div></div>
+        <div className="card statCard"><div className="metric">{counts.new}</div><div className="metricLabel">новые</div></div>
+        <div className="card statCard"><div className="metric">{counts.in_progress}</div><div className="metricLabel">в работе</div></div>
+        <div className="card statCard"><div className="metric">{counts.completed}</div><div className="metricLabel">выполнено</div></div>
         <div className="card statCard"><div className="metric">{visibleTasks.length}</div><div className="metricLabel">всего в зоне</div></div>
       </section>
-
+      <div className="tableControls"><div className="quickFilterChips" aria-label="Фильтры задач по статусу">
+        {statusFilters.map((filter) => {
+          const isActive = activeStatuses.includes(filter.id);
+          return <button key={filter.id} type="button" className={`filterChip${isActive ? " filterChipActive" : ""}`} aria-pressed={isActive} onClick={() => toggleStatus(filter.id)}><span>{filter.label}</span><span className="filterChipCount">{counts[filter.id]}</span></button>;
+        })}
+      </div></div>
       <section className="sectionStack">
-        <div className="card">
-          <h2>Просроченные</h2>
-          <TaskList tasks={overdueTasks} />
-        </div>
-
-        <div className="card">
-          <h2>Активные</h2>
-          <TaskList tasks={todayTasks} />
-        </div>
-
-        <div className="card">
-          <h2>Ожидают принятия</h2>
-          <TaskList tasks={pendingAcceptanceTasks} />
-        </div>
+        <div className="card"><h2>Новые</h2><TaskList tasks={groups.new} actions={{ actorUserId: currentUserId, requests, updateTaskAssignee, onCompleteClick: setConfirmTask }} /></div>
+        <div className="card"><h2>В работе</h2><TaskList tasks={groups.in_progress} actions={{ actorUserId: currentUserId, requests, updateTaskAssignee, onCompleteClick: setConfirmTask }} /></div>
+        {(activeStatuses.includes("completed") || activeStatuses.length === 0) && <div className="card"><h2>Выполнено</h2><TaskList tasks={groups.completed} actions={{ actorUserId: currentUserId, requests, updateTaskAssignee, onCompleteClick: setConfirmTask }} /></div>}
       </section>
+      {confirmTask && <div className="modalBackdrop" role="presentation"><section className="modalCard" role="dialog" aria-modal="true" aria-labelledby="complete-task-title">
+        <h2 id="complete-task-title">Подтвердите исполнение</h2>
+        <div className="detailGrid"><div className="field"><span>Задача</span><strong>{confirmTask.title}</strong></div><div className="field"><span>Заявка</span><strong>{request?.internalNumber ?? confirmTask.requestId}: {request?.title}</strong></div><div className="field"><span>Статус</span><strong>{confirmTask.status}</strong></div><div className="field"><span>Ответственный</span><strong>{getAssigneeName(confirmTask)}</strong></div><div className="field"><span>Создана</span><strong>{formatDateTime(confirmTask.createdAt)}</strong></div><div className="field"><span>Процесс</span><strong>{taskTypeLabels[confirmTask.taskType]} может запустить следующий шаг или показать предупреждение.</strong></div></div>
+        <div className="inlineAlert warning" role="alert">После подтверждения задача станет выполненной; связанные действия будут созданы без дублей.</div>
+        <div className="formActions"><button className="button" type="button" onClick={confirmComplete}>Подтвердить</button><button className="button buttonSecondary" type="button" onClick={() => setConfirmTask(null)}>Отмена</button></div>
+      </section></div>}
     </>
   );
 }

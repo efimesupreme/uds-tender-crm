@@ -23,7 +23,7 @@ export type AutomationSuggestion = {
   priority: AutomationPriority;
 };
 
-const activeTaskStatuses = new Set(["new", "in_progress", "waiting", "returned"]);
+const activeTaskStatuses = new Set(["new", "in_progress"]);
 
 export function hasActiveTask(tasks: RequestTask[], requestId: string, taskType: TaskType): boolean {
   return tasks.some((task) => task.requestId === requestId && task.taskType === taskType && activeTaskStatuses.has(task.status));

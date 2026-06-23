@@ -245,3 +245,6 @@ textarea.input { min-height: 92px; resize: vertical; }
   .taskMobileCard { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-secondary); }
   .taskMobileCard.problemRow { border-left: 4px solid var(--color-danger); background: var(--color-danger-bg); }
 }
+.modalBackdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgba(16, 32, 51, .42); }
+.modalCard { width: min(920px, 100%); max-height: min(720px, calc(100vh - 40px)); overflow: auto; display: grid; gap: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 18px; background: var(--color-surface); box-shadow: var(--shadow-md); }
+.modalCard h2 { margin: 0; }

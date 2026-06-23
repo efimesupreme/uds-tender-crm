@@ -69,9 +69,8 @@ export default function RequestDetailsClient({
     transitionRequest,
     closeRequest,
     startTask,
-    completeTask,
-    returnTask,
-    acceptTask,
+    completeTaskWithEffects,
+    updateTaskAssignee,
     updateAppealAndFolder,
     updateNextAction,
     updateParticipationBlock,
@@ -799,7 +798,7 @@ export default function RequestDetailsClient({
             <div className="detailGrid">
               <div className="field">
                 <span>Источник</span>
-                <strong>{request.sourceType}</strong>
+                <strong>{request.sourceCustomValue || request.sourceType}</strong>
               </div>
               <div className="field">
                 <span>Тип обращения</span>
@@ -1678,11 +1677,10 @@ export default function RequestDetailsClient({
           <TaskList
             tasks={requestTasks}
             actions={{
-              startTask,
-              completeTask,
-              returnTask,
-              acceptTask,
               actorUserId: currentUserId,
+              requests,
+              updateTaskAssignee,
+              onCompleteClick: (task) => completeTaskWithEffects(task.id, currentUserId),
             }}
           />
         </div>

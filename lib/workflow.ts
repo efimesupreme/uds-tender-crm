@@ -76,7 +76,12 @@ export const allowedStatusTransitions: Record<RequestStatus, RequestStatus[]> = 
   canceled_or_paused: []
 };
 
-export const taskStatuses = ["new", "in_progress", "waiting", "completed", "returned", "accepted", "canceled"] as const satisfies readonly TaskStatus[];
+export const taskStatuses = ["new", "in_progress", "completed"] as const satisfies readonly TaskStatus[];
+
+
+export const workTypeOptions = ["ППТ", "ППТЛО", "ПД", "ПД (въезд)", "АН", "Прочее"] as const;
+export const sourceTypeOptions = ["МЛ", "Тендер", "Повторное обращение", "Сайт", "Рекомендация"] as const;
+export const CUSTOM_SOURCE_TYPE = "Другое / свободный ввод";
 
 export const taskTypes = [
   "participation_decision",
@@ -120,11 +125,24 @@ export const taskTypeLabels: Record<TaskType, string> = {
   record_result: "Зафиксировать результат"
 };
 
+
+const denisDefaultTaskTypes = new Set<TaskType>(["participation_decision", "create_appeal", "create_folder", "prepare_costs", "check_costs", "contract_review", "prepare_protocol", "approve_protocol_lawyers", "approve_protocol_gd"]);
+const katyaDefaultTaskTypes = new Set<TaskType>(["collect_documents", "prepare_offer", "owner_approval", "submit_offer"]);
+export const taskResponsibleOptions = ["u-denis", "u-katya"] as const;
+export function getDefaultTaskAssigneeUserId(taskType: TaskType, fallbackUserId = "u-denis"): string {
+  if (denisDefaultTaskTypes.has(taskType)) return "u-denis";
+  if (katyaDefaultTaskTypes.has(taskType)) return "u-katya";
+  return fallbackUserId || "u-denis";
+}
+export function getAllowedTaskAssigneeUserIds(_taskType: TaskType): string[] {
+  return [...taskResponsibleOptions];
+}
+
 export const approvedRequestTaskTemplates: Array<Pick<RequestTask, "title" | "taskType" | "assigneeUserId" | "assigneeExternalId" | "comment">> = [
   { taskType: "create_appeal", title: taskTypeLabels.create_appeal, assigneeUserId: "u-denis" },
   { taskType: "create_folder", title: taskTypeLabels.create_folder, assigneeUserId: "u-denis" },
-  { taskType: "prepare_costs", title: taskTypeLabels.prepare_costs, assigneeExternalId: "e-gip" },
-  { taskType: "contract_review", title: taskTypeLabels.contract_review, assigneeExternalId: "e-lawyers" },
+  { taskType: "prepare_costs", title: taskTypeLabels.prepare_costs, assigneeUserId: "u-denis" },
+  { taskType: "contract_review", title: taskTypeLabels.contract_review, assigneeUserId: "u-denis" },
   { taskType: "collect_documents", title: taskTypeLabels.collect_documents, assigneeUserId: "u-katya" }
 ];
 
@@ -209,7 +227,7 @@ export function createDefaultTasksForApprovedRequest(requestId: string, createdB
     taskType: template.taskType,
     status: "new",
     createdBy,
-    assigneeUserId: template.assigneeUserId,
+    assigneeUserId: template.assigneeUserId ?? getDefaultTaskAssigneeUserId(template.taskType, createdBy),
     assigneeExternalId: template.assigneeExternalId,
     returnedCount: 0,
     comment: template.comment
