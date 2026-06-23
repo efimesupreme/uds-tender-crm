@@ -10,7 +10,7 @@ import { getRequestDetailsHref } from "@/lib/request-links";
 import { users } from "@/lib/mock-data";
 import { CUSTOM_SOURCE_TYPE, requestStatuses, sourceTypeOptions, statusLabels, workTypeOptions } from "@/lib/workflow";
 import type { RequestStatus, SourceType, WorkType } from "@/lib/types";
-import { isMyZoneRequest } from "@/lib/user-workspace";
+import { ADMIN_USER_ID, isMyZoneRequest } from "@/lib/user-workspace";
 
 const emptyForm = {
   title: "",
@@ -514,7 +514,7 @@ function RequestsPageContent() {
             onChange={(event) => setZone(event.target.value as "all" | "mine")}
           >
             <option value="all">Все заявки</option>
-            <option value="mine">Моя зона</option>
+            <option value="mine">{currentUserId === ADMIN_USER_ID ? "Все" : "Моя зона"}</option>
           </select>
         </label>
       </div>

@@ -6,6 +6,7 @@ export type User = {
   id: string;
   fullName: string;
   role: UserRole;
+  description?: string;
 };
 
 export type ExternalParticipant = {

@@ -10,7 +10,7 @@ import { getAverageStageDurations, getProcessBottlenecks } from "@/lib/metrics";
 import { formatMoney } from "@/lib/utils";
 import { isActiveRequest, isRequestProblem, isTaskOverdue } from "@/lib/workflow";
 import { getAutomationSuggestions, getSuggestionsForUser } from "@/lib/process-automation";
-import { DENIS_USER_ID, getDenisFocus, getKatyaFocus } from "@/lib/user-workspace";
+import { ADMIN_USER_ID, DENIS_USER_ID, getDenisFocus, getKatyaFocus } from "@/lib/user-workspace";
 
 export default function DashboardPage() {
   const { requests, tasks, events, statusHistory, currentUserId, isHydrated, applyAutomationSuggestion } = useCrmStore();
@@ -28,7 +28,9 @@ export default function DashboardPage() {
   const denisFocus = getDenisFocus(requests, tasks);
   const katyaFocus = getKatyaFocus(requests);
   const isDenis = currentUserId === DENIS_USER_ID;
-  const automationSuggestions = getSuggestionsForUser(requests.flatMap((request) => getAutomationSuggestions(request, tasks, events, new Date())), currentUserId);
+  const isAdmin = currentUserId === ADMIN_USER_ID;
+  const allAutomationSuggestions = requests.flatMap((request) => getAutomationSuggestions(request, tasks, events, new Date()));
+  const automationSuggestions = isAdmin ? allAutomationSuggestions : getSuggestionsForUser(allAutomationSuggestions, currentUserId);
   const closedStats = {
     won: requests.filter((request) => request.currentStatus === "won").length,
     lost: requests.filter((request) => request.currentStatus === "lost").length,
@@ -69,7 +71,14 @@ export default function DashboardPage() {
       <section className="card">
         <div className="sectionHeader"><div><h2>Рабочий фокус</h2><p>Главные операционные сигналы для текущего пользователя.</p></div></div>
         <div className="detailGrid">
-          {isDenis ? (
+          {isAdmin ? (
+            <>
+              <div className="field"><span>Все активные заявки</span><strong>{activeRequests.length}</strong></div>
+              <div className="field"><span>Все просроченные задачи</span><strong>{overdueTasks.length}</strong></div>
+              <div className="field"><span>Все проблемные заявки</span><strong>{problemRequests.length}</strong></div>
+              <div className="field"><span>Все подсказки</span><strong>{automationSuggestions.length}</strong></div>
+            </>
+          ) : isDenis ? (
             <>
               <div className="field"><span>Без решения об участии</span><strong>{denisFocus.participationPending.length}</strong></div>
               <div className="field"><span>Без обращения/папки</span><strong>{denisFocus.missingAppealOrFolder.length}</strong></div>
