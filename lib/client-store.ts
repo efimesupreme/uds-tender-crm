@@ -71,6 +71,13 @@ type CreateTaskInput = {
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
+function normalizeDemoUserLabels<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)
+    .replaceAll("Денис", "Тагиев")
+    .replaceAll("Катя", "Безрукова")
+  ) as T;
+}
+
 function initialState(): CrmState {
   return clone({ requests, tasks, statusHistory, events, fileLinks, currentUserId: DEFAULT_USER_ID, isHydrated: false });
 }
@@ -105,7 +112,7 @@ function readStoredState(): CrmState {
   }
 
   try {
-    return { ...initialState(), ...JSON.parse(raw), currentUserId: userId, isHydrated: true } as CrmState;
+    return normalizeDemoUserLabels({ ...initialState(), ...JSON.parse(raw), currentUserId: userId, isHydrated: true } as CrmState);
   } catch {
     const seeded = initialState();
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
@@ -123,7 +130,7 @@ function writeState(nextState: CrmState) {
 }
 
 function updateState(updater: (current: CrmState) => CrmState) {
-  writeState(updater(state));
+  writeState(normalizeDemoUserLabels(updater(state)));
 }
 
 
@@ -355,7 +362,7 @@ export function useCrmStore() {
   const createOfferPreparationTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "prepare_offer", taskTypeLabels.prepare_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подготовку КП"), [createAutomationTask]);
   const createOwnerApprovalTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "owner_approval", taskTypeLabels.owner_approval, "u-katya", actorUserId, "Автоматический сценарий: создана задача на согласование КП с МЛ"), [createAutomationTask]);
   const createSubmissionTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "submit_offer", taskTypeLabels.submit_offer, "u-katya", actorUserId, "Автоматический сценарий: создана задача на подачу КП"), [createAutomationTask]);
-  const createFeedbackTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "other", taskTypeLabels.other, actorUserId, actorUserId, "Автоматический сценарий: запланируйте обратную связь"), [createAutomationTask]);
+  const createFeedbackTask = useCallback((requestId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => createAutomationTask(requestId, "other", taskTypeLabels.other, getDefaultTaskAssigneeUserId("other", actorUserId), actorUserId, "Автоматический сценарий: запланируйте обратную связь"), [createAutomationTask]);
 
   const applyAutomationSuggestion = useCallback((suggestionId: string, actorUserId = getCurrentUserOrFallback(state.currentUserId)) => {
     const [requestId, actionKey] = suggestionId.split(":");

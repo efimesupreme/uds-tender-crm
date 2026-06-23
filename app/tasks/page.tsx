@@ -6,7 +6,7 @@ import { useCrmStore } from "@/lib/client-store";
 import type { RequestTask, TaskStatus } from "@/lib/types";
 import { getUserName } from "@/lib/utils";
 import { taskTypeLabels } from "@/lib/workflow";
-import { isMyTask } from "@/lib/user-workspace";
+import { ADMIN_USER_ID, isMyTask } from "@/lib/user-workspace";
 
 const statusFilters: Array<{ id: TaskStatus; label: string }> = [
   { id: "new", label: "Новые" },
@@ -20,6 +20,7 @@ export default function TasksPage() {
   const [confirmTask, setConfirmTask] = useState<RequestTask | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  const isAdmin = currentUserId === ADMIN_USER_ID;
   const visibleTasks = tasks.filter((task) => isMyTask(task, currentUserId));
   const filteredTasks = activeStatuses.length === 0 ? visibleTasks : visibleTasks.filter((task) => activeStatuses.includes(task.status));
   const groups = useMemo(() => ({
@@ -44,6 +45,7 @@ export default function TasksPage() {
     <>
       <header className="pageHeader"><div><h1>Мои задачи</h1><p>Рабочий список задач по заявкам. Данные берутся из клиентского demo-store.</p></div></header>
       {message && <div className="alert" role="alert">{message}</div>}
+      {isAdmin && <div className="inlineAlert" role="status">Режим администратора: показаны все задачи</div>}
       <div className="tableControls"><div className="quickFilterChips" aria-label="Фильтры задач по статусу">
         {statusFilters.map((filter) => {
           const isActive = activeStatuses.includes(filter.id);

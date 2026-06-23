@@ -117,6 +117,7 @@ export const taskResponsibleOptions = ["u-denis", "u-katya"] as const;
 export function getDefaultTaskAssigneeUserId(taskType: TaskType, fallbackUserId = "u-denis"): string {
   if (denisDefaultTaskTypes.has(taskType)) return "u-denis";
   if (katyaDefaultTaskTypes.has(taskType)) return "u-katya";
+  if (fallbackUserId === "u-admin") return "u-denis";
   return fallbackUserId || "u-denis";
 }
 export function getAllowedTaskAssigneeUserIds(_taskType: TaskType): string[] {

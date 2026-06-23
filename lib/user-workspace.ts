@@ -3,17 +3,16 @@ import { isRequestProblem, isTaskOverdue } from "./workflow";
 
 export const DENIS_USER_ID = "u-denis";
 export const KATYA_USER_ID = "u-katya";
+export const ADMIN_USER_ID = "u-admin";
 
-const katyaTaskTypes = new Set(["collect_documents", "prepare_offer", "owner_approval", "submit_offer"]);
 const katyaStatuses = new Set(["offer_preparation", "owner_approval", "ready_to_submit", "submitted", "feedback_waiting"]);
 
-export function isKatyaTask(task: RequestTask): boolean {
-  return task.assigneeUserId === KATYA_USER_ID || katyaTaskTypes.has(task.taskType);
+export function isAdminUser(userId: string): boolean {
+  return userId === ADMIN_USER_ID;
 }
 
 export function isMyTask(task: RequestTask, userId: string): boolean {
-  if (userId === DENIS_USER_ID) return task.assigneeUserId === DENIS_USER_ID || !task.assigneeUserId;
-  if (userId === KATYA_USER_ID) return isKatyaTask(task);
+  if (isAdminUser(userId)) return true;
   return task.assigneeUserId === userId;
 }
 
@@ -32,6 +31,7 @@ export function isKatyaZoneRequest(request: Request): boolean {
 }
 
 export function isMyZoneRequest(request: Request, tasks: RequestTask[], userId: string): boolean {
+  if (isAdminUser(userId)) return true;
   if (userId === DENIS_USER_ID) return isDenisZoneRequest(request, tasks);
   if (userId === KATYA_USER_ID) return isKatyaZoneRequest(request);
   return request.ownerUserId === userId;

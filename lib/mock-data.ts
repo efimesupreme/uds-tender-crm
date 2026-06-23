@@ -1,8 +1,9 @@
 import type { DirectoryItem, ExternalParticipant, FileLink, Request, RequestEvent, RequestTask, StatusHistoryItem, User } from "./types";
 
 export const users: User[] = [
-  { id: "u-denis", fullName: "Денис", role: "admin" },
-  { id: "u-katya", fullName: "Катя", role: "user" }
+  { id: "u-denis", fullName: "Тагиев", role: "user", description: "Руководитель процесса" },
+  { id: "u-katya", fullName: "Безрукова", role: "user", description: "КП, документы, подача" },
+  { id: "u-admin", fullName: "Админ", role: "admin", description: "Администратор системы" }
 ];
 
 export const externalParticipants: ExternalParticipant[] = [
@@ -190,7 +191,7 @@ export const requests: Request[] = [
     offerStatus: "approved",
     offerMlApprovedAt: "2026-06-19T15:00:00+03:00",
     submissionMethod: "Электронная почта",
-    submissionSubmittedBy: "Катя",
+    submissionSubmittedBy: "Безрукова",
     submissionSubmittedAt: "2026-06-20T16:30:00+03:00",
     feedbackStatus: "waiting",
     nextActionText: "Запросить обратную связь у заказчика",
@@ -302,7 +303,7 @@ export const requests: Request[] = [
     offerPreparedAt: "2026-06-22T12:00:00+03:00",
     offerMlApprovedAt: "2026-06-22T13:00:00+03:00",
     submissionMethod: "Тендер",
-    submissionSubmittedBy: "Катя",
+    submissionSubmittedBy: "Безрукова",
     submissionSubmittedAt: "2026-06-22T15:00:00+03:00",
     resultStatus: "none",
     createdAt: "2026-06-22T11:00:00+03:00"
@@ -417,7 +418,7 @@ export const events: RequestEvent[] = [
   { id: "ev-001", requestId: "r-001", eventType: "request_created", actorUserId: "u-denis", comment: "Заявка создана", createdAt: "2026-06-20T10:15:00+03:00" },
   { id: "ev-002", requestId: "r-001", eventType: "participation_decision_recorded", actorExternalId: "e-gd", comment: "Участие согласовано", createdAt: "2026-06-20T13:10:00+03:00" },
   { id: "ev-003", requestId: "r-001", eventType: "task_created", actorUserId: "u-denis", comment: "Созданы задачи по затратам, договору и документам", createdAt: "2026-06-20T13:20:00+03:00" },
-  { id: "ev-004", requestId: "r-002", eventType: "offer_block_updated", actorUserId: "u-katya", comment: "Катя подготовила КП и отправила на согласование МЛ", createdAt: "2026-06-21T14:30:00+03:00" },
+  { id: "ev-004", requestId: "r-002", eventType: "offer_block_updated", actorUserId: "u-katya", comment: "Безрукова подготовила КП и отправила на согласование МЛ", createdAt: "2026-06-21T14:30:00+03:00" },
   { id: "ev-005", requestId: "r-006", eventType: "request_submitted", actorUserId: "u-katya", comment: "КП подано заказчику", createdAt: "2026-06-20T16:30:00+03:00" },
   { id: "ev-006", requestId: "r-002", eventType: "owner_approval_waiting", actorExternalId: "e-ml", comment: "Ожидаем решение МЛ", createdAt: "2026-06-21T15:00:00+03:00" }
 ];
