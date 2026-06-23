@@ -40,6 +40,7 @@ export function RequestKanban({
 }) {
   const [draggedRequestId, setDraggedRequestId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [mobileTargets, setMobileTargets] = useState<Record<string, RequestStatus>>({});
 
   const requestsByColumn = useMemo(() => {
     return kanbanColumns.map((column) => {
@@ -93,6 +94,20 @@ export function RequestKanban({
     setMessage(result.warnings.length > 0 ? `Переход выполнен. Рекомендуется заполнить: ${result.warnings.join(", ")}` : null);
   }
 
+  function applyMobileTransition(request: Request, toStatus: RequestStatus) {
+    if (request.currentStatus === toStatus) return;
+    if (!canTransitionRequest(request.currentStatus, toStatus)) {
+      setMessage("Переход из текущего статуса в выбранный этап не разрешён процессом");
+      return;
+    }
+    const result = transitionRequest(request.id, toStatus, actorUserId, "Этап изменён из мобильной карточки канбана");
+    if (!result.allowed) {
+      setMessage(`Нельзя перейти на этот этап: заполните обязательные данные. Не хватает: ${result.errors.join(", ")}`);
+      return;
+    }
+    setMessage(result.warnings.length > 0 ? `Переход выполнен. Рекомендуется заполнить: ${result.warnings.join(", ")}` : "Переход выполнен");
+  }
+
   return (
     <section className="kanbanSection" aria-label="Канбан заявок">
       {message && <div className="kanbanMessage" role="alert">{message}</div>}
@@ -113,8 +128,7 @@ export function RequestKanban({
                 const problem = isRequestProblem(request, tasks);
                 const overdue = isPast(request.submissionDeadlineAt) || isPast(request.nextActionDueAt);
                 return (
-                  <Link
-                    href={getRequestDetailsHref(request.id)}
+                  <article
                     className={`kanbanCard${problem ? " problemRow" : ""}${draggedRequestId === request.id ? " kanbanCardDragging" : ""}`}
                     draggable
                     key={request.id}
@@ -125,7 +139,7 @@ export function RequestKanban({
                       <span className="small muted">{request.internalNumber}</span>
                       {(problem || overdue) && <span className="dangerText small">Проблема</span>}
                     </div>
-                    <strong>{request.title}</strong>
+                    <Link href={getRequestDetailsHref(request.id)} className="tableLink"><strong>{request.title}</strong></Link>
                     <div className="small muted">{request.customerName}</div>
                     <StatusBadge status={request.currentStatus} />
                     <div className="kanbanCardMeta">
@@ -135,7 +149,24 @@ export function RequestKanban({
                       <span>Ответственный: {getUserName(request.ownerUserId)}</span>
                     </div>
                     <div className="small muted">{statusLabels[request.currentStatus]}</div>
-                  </Link>
+                    <div className="kanbanMobileTransition">
+                      <label className="formField" htmlFor={`kanban-status-${request.id}`}>Изменить этап
+                        <select
+                          id={`kanban-status-${request.id}`}
+                          name={`kanbanStatus-${request.id}`}
+                          className="select"
+                          value={mobileTargets[request.id] ?? request.currentStatus}
+                          onChange={(event) => setMobileTargets({ ...mobileTargets, [request.id]: event.target.value as RequestStatus })}
+                        >
+                          <option value={request.currentStatus}>{statusLabels[request.currentStatus]}</option>
+                          {getNextMobileStatuses(request.currentStatus).map((status) => (
+                            <option value={status} key={status}>{statusLabels[status]}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <button className="button" type="button" onClick={() => applyMobileTransition(request, mobileTargets[request.id] ?? request.currentStatus)}>Применить</button>
+                    </div>
+                  </article>
                 );
               })}
             </div>
@@ -144,4 +175,11 @@ export function RequestKanban({
       </div>
     </section>
   );
+}
+
+function getNextMobileStatuses(currentStatus: RequestStatus) {
+  return kanbanColumns
+    .map((column) => column.targetStatus)
+    .filter((status): status is RequestStatus => Boolean(status))
+    .filter((status) => status !== currentStatus && canTransitionRequest(currentStatus, status));
 }

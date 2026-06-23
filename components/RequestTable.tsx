@@ -7,8 +7,31 @@ import { StatusBadge } from "./StatusBadge";
 
 export function RequestTable({ requests, tasks }: { requests: Request[]; tasks: RequestTask[] }) {
   return (
-    <div className="tableWrap">
-      <table>
+    <>
+      <div className="requestCardList" aria-label="Список заявок">
+        {requests.map((request) => {
+          const problem = isRequestProblem(request, tasks);
+          return (
+            <Link href={getRequestDetailsHref(request.id)} className={`requestMobileCard${problem ? " problemRow" : ""}`} key={request.id}>
+              <div className="kanbanCardTop">
+                <span className="small muted">{request.internalNumber}</span>
+                {problem && <span className="dangerText small">Проблема</span>}
+              </div>
+              <strong>{request.title}</strong>
+              <div className="small muted">{request.customerName}</div>
+              <StatusBadge status={request.currentStatus} />
+              <div className="mobileMetaGrid">
+                <span>Срок: {formatDateTime(request.submissionDeadlineAt)}</span>
+                <span>Ответственный: {getUserName(request.ownerUserId)}</span>
+                <span>КП: {formatMoney(request.offerAmount)}</span>
+                <span>Дальше: {request.nextActionText ?? "нет действия"}</span>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+      <div className="tableWrap requestDesktopTable">
+        <table>
         <thead>
           <tr>
             <th>ID</th>
@@ -48,7 +71,8 @@ export function RequestTable({ requests, tasks }: { requests: Request[]; tasks: 
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+    </>
   );
 }
